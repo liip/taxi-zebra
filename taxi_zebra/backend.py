@@ -5,19 +5,17 @@ import logging
 import requests
 
 from taxi.alias import alias_database
-from taxi.backends.exceptions import PushEntryFailedException
+from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.projects import Activity, Project
 
 logger = logging.getLogger(__name__)
 
 
-class ZebraBackend(object):
-    def __init__(self, login, password, host, port, path, options):
-        self.login = login
-        self.password = password
-        self.host = host
-        self.port = int(port) if port else 443
-        self.path = path
+class ZebraBackend(BaseBackend):
+    def __init__(self, *args, **kwargs):
+        super(ZebraBackend, self).__init__(*args, **kwargs)
+
+        self.port = int(self.port) if self.port else 443
 
         if not self.path.startswith('/'):
             self.path = '/' + self.path
@@ -26,13 +24,13 @@ class ZebraBackend(object):
 
     def get_full_url(self, url):
         return 'https://{host}:{port}{base_path}{url}'.format(
-            host=self.host, port=self.port, base_path=self.path, url=url
+            host=self.hostname, port=self.port, base_path=self.path, url=url
         )
 
     def authenticate(self):
-        login_url = self.get_full_url('/login/user/%s.json' % self.login)
+        login_url = self.get_full_url('/login/user/%s.json' % self.username)
         parameters_dict = {
-            'username': self.login,
+            'username': self.username,
             'password': self.password,
         }
 
@@ -56,7 +54,7 @@ class ZebraBackend(object):
 
         if 'exception' in response:
             error = response['exception']['message']
-            raise PushEntryFailedException(error)
+            raise PushEntryFailed(error)
         elif 'error' in response['command']:
             error = None
             for element in response['command']['error']:
@@ -67,7 +65,7 @@ class ZebraBackend(object):
             if not error:
                 error = "Unknown error message"
 
-            raise PushEntryFailedException(error)
+            raise PushEntryFailed(error)
 
     def get_projects(self):
         projects_url = self.get_full_url('project/all.json')
