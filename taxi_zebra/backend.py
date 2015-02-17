@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from functools import wraps
 import logging
 import requests
 
@@ -9,6 +10,15 @@ from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.projects import Activity, Project
 
 logger = logging.getLogger(__name__)
+
+
+def needs_authentication(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        args[0].authenticate()
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 class ZebraBackend(BaseBackend):
@@ -20,7 +30,8 @@ class ZebraBackend(BaseBackend):
         if not self.path.startswith('/'):
             self.path = '/' + self.path
 
-        self.session = requests.Session()
+        self._authenticated = False
+        self._session = requests.Session()
 
     def get_full_url(self, url):
         return 'https://{host}:{port}{base_path}{url}'.format(
@@ -28,14 +39,20 @@ class ZebraBackend(BaseBackend):
         )
 
     def authenticate(self):
+        if self._authenticated:
+            return
+
         login_url = self.get_full_url('/login/user/%s.json' % self.username)
         parameters_dict = {
             'username': self.username,
             'password': self.password,
         }
 
-        self.session.post(login_url, data=parameters_dict)
+        self._session.post(login_url, data=parameters_dict)
 
+        self.authenticated = True
+
+    @needs_authentication
     def push_entry(self, date, entry):
         post_url = self.get_full_url('/timesheet/create/.json')
 
@@ -50,7 +67,7 @@ class ZebraBackend(BaseBackend):
             'description':  entry.description,
         }
 
-        response = self.session.post(post_url, data=parameters).json()
+        response = self._session.post(post_url, data=parameters).json()
 
         if 'exception' in response:
             error = response['exception']['message']
@@ -67,10 +84,11 @@ class ZebraBackend(BaseBackend):
 
             raise PushEntryFailed(error)
 
+    @needs_authentication
     def get_projects(self):
         projects_url = self.get_full_url('project/all.json')
 
-        response = self.session.get(projects_url).json()
+        response = self._session.get(projects_url).json()
         projects = response['command']['projects']['project']
         activities = response['command']['activities']['activity']
         activities_dict = {}
