@@ -25,7 +25,7 @@ class ZebraBackend(BaseBackend):
     def __init__(self, *args, **kwargs):
         super(ZebraBackend, self).__init__(*args, **kwargs)
 
-        self.port = int(self.port) if self.port else 443
+        self.port = self.port if self.port else 443
 
         if not self.path.startswith('/'):
             self.path = '/' + self.path
