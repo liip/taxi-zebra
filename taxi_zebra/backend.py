@@ -7,6 +7,7 @@ import requests
 
 from taxi.aliases import aliases_database
 from taxi.backends import BaseBackend, PushEntryFailed
+from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,10 @@ class ZebraBackend(BaseBackend):
             'password': self.password,
         }
 
-        self._session.post(login_url, data=parameters_dict)
+        try:
+            self._session.post(login_url, data=parameters_dict).json()
+        except ValueError:
+            raise TaxiException("Login failed, please check your credentials")
 
         self.authenticated = True
 
