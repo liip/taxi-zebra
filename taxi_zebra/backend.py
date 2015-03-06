@@ -5,7 +5,7 @@ from functools import wraps
 import logging
 import requests
 
-from taxi.alias import alias_database
+from taxi.aliases import aliases_database
 from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.projects import Activity, Project
 
@@ -56,7 +56,7 @@ class ZebraBackend(BaseBackend):
     def push_entry(self, date, entry):
         post_url = self.get_full_url('/timesheet/create/.json')
 
-        mapping = alias_database[entry.alias]
+        mapping = aliases_database[entry.alias]
         parameters = {
             'time':         entry.hours,
             'project_id':   mapping.mapping[0],
