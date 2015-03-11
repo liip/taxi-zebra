@@ -4,7 +4,8 @@ from taxi_zebra import __version__
 
 
 install_requires = [
-    'requests>=2.3.0'
+    'requests>=2.3.0',
+    'taxi>=4.0.0'
 ]
 
 setup(
