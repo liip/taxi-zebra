@@ -5,6 +5,7 @@ from functools import wraps
 import logging
 import requests
 
+from taxi import __version__ as taxi_version
 from taxi.aliases import aliases_database
 from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
@@ -31,8 +32,17 @@ class ZebraBackend(BaseBackend):
         if not self.path.startswith('/'):
             self.path = '/' + self.path
 
+        if not self.path.endswith('/'):
+            self.path += '/'
+
         self._authenticated = False
         self._session = requests.Session()
+        self._session.headers.update(
+            {'user-agent': 'Taxi {}'.format(taxi_version)}
+        )
+
+    def get_api_url(self, url):
+        return self.get_full_url('/api/v2{url}'.format(url=url))
 
     def get_full_url(self, url):
         return 'https://{host}:{port}{base_path}{url}'.format(
@@ -58,97 +68,61 @@ class ZebraBackend(BaseBackend):
 
     @needs_authentication
     def push_entry(self, date, entry):
-        post_url = self.get_full_url('/timesheet/create/.json')
+        post_url = self.get_api_url('/timesheets/')
 
         mapping = aliases_database[entry.alias]
         parameters = {
-            'time':         entry.hours,
-            'project_id':   mapping.mapping[0],
-            'activity_id':  mapping.mapping[1],
-            'day':          date.day,
-            'month':        date.month,
-            'year':         date.year,
-            'description':  entry.description,
+            'time': entry.hours,
+            'project_id': mapping.mapping[0],
+            'activity_id': mapping.mapping[1],
+            'date': date.strftime('%Y-%m-%d'),
+            'description': entry.description,
         }
 
-        response = self._session.post(post_url, data=parameters).json()
+        try:
+            response = self._session.post(post_url, data=parameters).json()
+        except ValueError:
+            raise PushEntryFailed(
+                "Got a non-JSON response when trying to push timesheet"
+            )
 
-        if 'exception' in response:
-            error = response['exception']['message']
-            raise PushEntryFailed(error)
-        elif 'error' in response['command']:
-            error = None
-            for element in response['command']['error']:
-                if 'Project' in element:
-                    error = element['Project']
-                    break
-
-            if not error:
+        if not response['success']:
+            try:
+                error = response['error']
+            except KeyError:
                 error = "Unknown error message"
 
             raise PushEntryFailed(error)
 
     @needs_authentication
     def get_projects(self):
-        projects_url = self.get_full_url('project/all.json')
+        projects_url = self.get_api_url('/projects/')
 
-        response = self._session.get(projects_url).json()
-        projects = response['command']['projects']['project']
-        activities = response['command']['activities']['activity']
-        activities_dict = {}
-
-        for activity in activities:
-            a = Activity(int(activity['id']), activity['name'],
-                         activity['rate_eur'])
-            activities_dict[a.id] = a
-
+        projects = self._session.get(projects_url).json()
         projects_list = []
-        i = 0
+        date_attrs = (('start_date', 'startdate'), ('end_date', 'enddate'))
 
-        for project in projects:
-            p = Project(int(project['id']), project['name'],
-                        project['status'], project['description'],
-                        project['budget'])
+        for id, project in projects['data'].items():
+            p = Project(int(id), project['name'], int(project['status']),
+                        project['description'], project['budget'])
 
-            try:
-                p.start_date = datetime.strptime(
-                    project['startdate'], '%Y-%m-%d').date()
-            except ValueError:
-                p.start_date = None
-
-            try:
-                p.end_date = datetime.strptime(
-                    project['enddate'], '%Y-%m-%d').date()
-            except ValueError:
-                p.end_date = None
-
-            i += 1
-
-            activities = project['activities']['activity']
-
-            # Sometimes the activity list just contains an @attribute
-            # element, in this case we skip it
-            if isinstance(activities, dict):
-                continue
-
-            # If there's only 1 activity, this won't be a list but a simple
-            # element
-            if not isinstance(activities, list):
-                activities = [activities]
-
-            for activity in activities:
+            for date_attr, proj_date in date_attrs:
                 try:
-                    if int(activity) in activities_dict:
-                        p.add_activity(activities_dict[int(activity)])
-                except ValueError:
-                    logger.warn(
-                        "Cannot import activity %s for project %s because "
-                        "activity id is not an int" % (activity, p.id)
-                    )
+                    date = datetime.strptime(project[proj_date],
+                                             '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    date = None
+
+                setattr(p, date_attr, date)
+
+            for activity in project['activities']:
+                a = Activity(int(activity['id']), activity['name'],
+                             activity['rate'])
+                p.add_activity(a)
 
             if 'activity_aliases' in project and project['activity_aliases']:
-                for alias, mapping in project['activity_aliases'].items():
-                    p.aliases[alias] = int(mapping)
+                for alias in project['activity_aliases']:
+                    p.aliases[alias['alias']] = alias['activity_id']
 
             projects_list.append(p)
 
