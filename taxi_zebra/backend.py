@@ -64,7 +64,7 @@ class ZebraBackend(BaseBackend):
         except ValueError:
             raise TaxiException("Login failed, please check your credentials")
 
-        self.authenticated = True
+        self._authenticated = True
 
     @needs_authentication
     def push_entry(self, date, entry):
