@@ -102,9 +102,10 @@ class ZebraBackend(BaseBackend):
         projects_list = []
         date_attrs = (('start_date', 'startdate'), ('end_date', 'enddate'))
 
-        for id, project in projects['data'].items():
-            p = Project(int(id), project['name'], int(project['status']),
-                        project['description'], project['budget'])
+        for project in projects['data']:
+            p = Project(int(project['id']), project['name'],
+                        Project.STATUS_ACTIVE, project['description'],
+                        project['budget'])
 
             for date_attr, proj_date in date_attrs:
                 try:
@@ -120,9 +121,8 @@ class ZebraBackend(BaseBackend):
                              activity['rate'])
                 p.add_activity(a)
 
-            if 'activity_aliases' in project and project['activity_aliases']:
-                for alias in project['activity_aliases']:
-                    p.aliases[alias['alias']] = alias['activity_id']
+                if activity['alias']:
+                    p.aliases[activity['alias']] = activity['id']
 
             projects_list.append(p)
 
