@@ -1,3 +1,11 @@
+taxi-zebra (1.0.7-1) liip; urgency=medium
+
+  * New 1.0.7 upstream release
+
+  * Add debian/gbp.conf for git-buildpackage
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Tue, 15 Dec 2015 16:19:37 +0100
+
 taxi-zebra (1.0.5-1) liip; urgency=medium
 
   * New 1.0.5 release
