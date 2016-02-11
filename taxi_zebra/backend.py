@@ -4,6 +4,7 @@ from datetime import datetime
 from functools import wraps
 import logging
 import requests
+from six.moves.urllib import parse
 
 from taxi import __version__ as taxi_version
 from taxi.aliases import aliases_database
@@ -45,6 +46,10 @@ class ZebraBackend(BaseBackend):
         return self.get_full_url('/api/v2{url}'.format(url=url))
 
     def get_full_url(self, url):
+        # Remove slash at the start of the string since self.path already ends
+        # with a slash
+        url = url.lstrip('/')
+
         return 'https://{host}:{port}{base_path}{url}'.format(
             host=self.hostname, port=self.port, base_path=self.path, url=url
         )
@@ -127,3 +132,25 @@ class ZebraBackend(BaseBackend):
             projects_list.append(p)
 
         return projects_list
+
+
+class ZebraTokenBackend(ZebraBackend):
+    """
+    This backends allows the user to log in with a token instead of a password
+    in Zebra. Instead of authenticating once the token is sent along every
+    request.
+    """
+    def authenticate(self):
+        return
+
+    def get_api_url(self, url):
+        url = super(ZebraTokenBackend, self).get_api_url(url)
+        split_url = list(parse.urlsplit(url))
+
+        # Add the token parameter to the query string, then rebuild the URL
+        qs = parse.parse_qs(split_url[3])
+        qs['token'] = self.password
+        split_url[3] = parse.urlencode(qs, doseq=True)
+        url_with_token = parse.urlunsplit(split_url)
+
+        return url_with_token
