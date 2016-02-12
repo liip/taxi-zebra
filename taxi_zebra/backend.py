@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 from functools import wraps
 import logging
+
 import requests
 from six.moves.urllib import parse
 
@@ -43,7 +44,12 @@ class ZebraBackend(BaseBackend):
         )
 
     def get_api_url(self, url):
-        return self.get_full_url('/api/v2{url}'.format(url=url))
+        absolute_url = self.get_full_url('/api/v2{url}'.format(url=url))
+
+        if not self.password:
+            absolute_url = self.append_token(absolute_url)
+
+        return absolute_url
 
     def get_full_url(self, url):
         # Remove slash at the start of the string since self.path already ends
@@ -54,8 +60,19 @@ class ZebraBackend(BaseBackend):
             host=self.hostname, port=self.port, base_path=self.path, url=url
         )
 
+    def append_token(self, url):
+        split_url = list(parse.urlsplit(url))
+
+        # Add the token parameter to the query string, then rebuild the URL
+        qs = parse.parse_qs(split_url[3])
+        qs['token'] = self.username
+        split_url[3] = parse.urlencode(qs, doseq=True)
+        url_with_token = parse.urlunsplit(split_url)
+
+        return url_with_token
+
     def authenticate(self):
-        if self._authenticated:
+        if self._authenticated or not self.password:
             return
 
         login_url = self.get_full_url('/login/user/%s.json' % self.username)
@@ -132,25 +149,3 @@ class ZebraBackend(BaseBackend):
             projects_list.append(p)
 
         return projects_list
-
-
-class ZebraTokenBackend(ZebraBackend):
-    """
-    This backends allows the user to log in with a token instead of a password
-    in Zebra. Instead of authenticating once the token is sent along every
-    request.
-    """
-    def authenticate(self):
-        return
-
-    def get_api_url(self, url):
-        url = super(ZebraTokenBackend, self).get_api_url(url)
-        split_url = list(parse.urlsplit(url))
-
-        # Add the token parameter to the query string, then rebuild the URL
-        qs = parse.parse_qs(split_url[3])
-        qs['token'] = self.password
-        split_url[3] = parse.urlencode(qs, doseq=True)
-        url_with_token = parse.urlunsplit(split_url)
-
-        return url_with_token

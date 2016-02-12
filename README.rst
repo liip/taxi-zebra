@@ -21,7 +21,7 @@ following configuration::
     my_zebra_backend = zebra://username:password@zebra.example.com
 
 If you want to use a token-based authentication, start by generating a token in
-your Zebra profile, then use the ``zebra+token`` protocol::
+your Zebra profile, then use the token as your username, without any password::
 
     [backends]
-    my_zebra_backend = zebra+token://username:token@zebra.example.com
+    my_zebra_backend = zebra://token@zebra.example.com

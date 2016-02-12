@@ -20,7 +20,6 @@ setup(
     install_requires=install_requires,
     license='wtfpl',
     entry_points={
-        'taxi.backends': ['zebra = taxi_zebra.backend:ZebraBackend',
-                          'zebra+token = taxi_zebra.backend:ZebraTokenBackend']
+        'taxi.backends': 'zebra = taxi_zebra.backend:ZebraBackend',
     }
 )
