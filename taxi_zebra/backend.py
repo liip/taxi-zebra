@@ -120,7 +120,14 @@ class ZebraBackend(BaseBackend):
     def get_projects(self):
         projects_url = self.get_api_url('/projects/')
 
-        projects = self._session.get(projects_url).json()
+        try:
+            response = self._session.get(projects_url)
+            projects = response.json()
+        except ValueError:
+            raise TaxiException(
+                "Unexpected response from the server (%s).  Check your "
+                "credentials" % response.content
+            )
         projects_list = []
         date_attrs = (('start_date', 'startdate'), ('end_date', 'enddate'))
 
