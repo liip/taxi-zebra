@@ -3,7 +3,9 @@ from __future__ import unicode_literals
 from datetime import datetime
 from functools import wraps
 import logging
+
 import requests
+from six.moves.urllib import parse
 
 from taxi import __version__ as taxi_version
 from taxi.aliases import aliases_database
@@ -42,15 +44,35 @@ class ZebraBackend(BaseBackend):
         )
 
     def get_api_url(self, url):
-        return self.get_full_url('/api/v2{url}'.format(url=url))
+        absolute_url = self.get_full_url('/api/v2{url}'.format(url=url))
+
+        if not self.password:
+            absolute_url = self.append_token(absolute_url)
+
+        return absolute_url
 
     def get_full_url(self, url):
+        # Remove slash at the start of the string since self.path already ends
+        # with a slash
+        url = url.lstrip('/')
+
         return 'https://{host}:{port}{base_path}{url}'.format(
             host=self.hostname, port=self.port, base_path=self.path, url=url
         )
 
+    def append_token(self, url):
+        split_url = list(parse.urlsplit(url))
+
+        # Add the token parameter to the query string, then rebuild the URL
+        qs = parse.parse_qs(split_url[3])
+        qs['token'] = self.username
+        split_url[3] = parse.urlencode(qs, doseq=True)
+        url_with_token = parse.urlunsplit(split_url)
+
+        return url_with_token
+
     def authenticate(self):
-        if self._authenticated:
+        if self._authenticated or not self.password:
             return
 
         login_url = self.get_full_url('/login/user/%s.json' % self.username)
@@ -98,7 +120,14 @@ class ZebraBackend(BaseBackend):
     def get_projects(self):
         projects_url = self.get_api_url('/projects/')
 
-        projects = self._session.get(projects_url).json()
+        try:
+            response = self._session.get(projects_url)
+            projects = response.json()
+        except ValueError:
+            raise TaxiException(
+                "Unexpected response from the server (%s).  Check your "
+                "credentials" % response.content
+            )
         projects_list = []
         date_attrs = (('start_date', 'startdate'), ('end_date', 'enddate'))
 

@@ -5,7 +5,8 @@ from taxi_zebra import __version__
 
 install_requires = [
     'requests>=2.3.0',
-    'taxi>=4.0.0'
+    'taxi>=4.0.0',
+    'six>=1.9.0',
 ]
 
 setup(
@@ -19,6 +20,6 @@ setup(
     install_requires=install_requires,
     license='wtfpl',
     entry_points={
-        'taxi.backends': 'zebra = taxi_zebra.backend:ZebraBackend'
+        'taxi.backends': 'zebra = taxi_zebra.backend:ZebraBackend',
     }
 )
