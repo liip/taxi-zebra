@@ -3,15 +3,14 @@ Section: comm
 Priority: extra
 Maintainer: Didier Raboud <didier.raboud@liip.ch>
 Uploaders: Gilles Meier <gilles.meier@liip.ch>
-Build-Depends: debhelper (>= 9),
-               bash-completion,
-               python,
-               python-setuptools,
+Build-Depends: bash-completion,
+               debhelper (>= 9),
                dh-python,
-               python-freezegun,
-               python-pytest,
-               python-six (>= 1.9.0),
-X-Python-Version: >= 2.7
+               python3,
+               python3-freezegun,
+               python3-pytest,
+               python3-setuptools,
+               python3-six (>= 1.9.0)
 Standards-Version: 3.9.5
 Homepage: https://github.com/sephii/taxi-zebra
 Vcs-Git: git://github.com/sephii/taxi-zebra.git
@@ -19,6 +18,6 @@ Vcs-Browser: https://github.com/sephii/taxi-zebra
 
 Package: taxi-backend-zebra
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends},
-Provides: taxi-backend 
+Depends: ${misc:Depends}, ${python3:Depends}
+Provides: taxi-backend
 Description: Taxi backend to Liip's Zebra
