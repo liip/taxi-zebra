@@ -1,3 +1,12 @@
+taxi-zebra (1.2.0-1) liip; urgency=medium
+
+  * New 1.2.0 upstream release
+  * Add missing bash-completion Build-Depend
+  * Use python3
+  * Allow tests to fail
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Wed, 09 Mar 2016 11:00:14 +0100
+
 taxi-zebra (1.0.7-1) liip; urgency=medium
 
   * New 1.0.7 upstream release
