@@ -13,6 +13,7 @@ from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +43,25 @@ class ZebraBackend(BaseBackend):
         self._session.headers.update(
             {'user-agent': 'Taxi {}'.format(taxi_version)}
         )
+
+    def get(self, url, api_url=True, **kwargs):
+        url = self.get_api_url(url) if api_url else self.get_full_url(url)
+
+        logger.debug("GET %s", url)
+        response = self._session.get(url, **kwargs)
+
+        return response
+
+    def post(self, url, data=None, api_url=True, **kwargs):
+        url = self.get_api_url(url) if api_url else self.get_full_url(url)
+
+        logger.info("POST %s with data %s", url, data)
+        response = self._session.post(url, **kwargs)
+        logger.debug("Got response code %s, full response below",
+                     response.status_code)
+        logger.debug(response.content)
+
+        return response
 
     def get_api_url(self, url):
         absolute_url = self.get_full_url('/api/v2{url}'.format(url=url))
@@ -75,23 +95,21 @@ class ZebraBackend(BaseBackend):
         if self._authenticated or not self.password:
             return
 
-        login_url = self.get_full_url('/login/user/%s.json' % self.username)
         parameters_dict = {
             'username': self.username,
             'password': self.password,
         }
 
-        try:
-            self._session.post(login_url, data=parameters_dict).json()
-        except ValueError:
-            raise TaxiException("Login failed, please check your credentials")
+        response = self.post('/login/', data=parameters_dict, api_url=False,
+                             allow_redirects=False)
 
-        self._authenticated = True
+        if response.status_code != 301:
+            raise TaxiException("Login failed, please check your credentials")
+        else:
+            self._authenticated = True
 
     @needs_authentication
     def push_entry(self, date, entry):
-        post_url = self.get_api_url('/timesheets/')
-
         mapping = aliases_database[entry.alias]
         parameters = {
             'time': entry.hours,
@@ -102,7 +120,7 @@ class ZebraBackend(BaseBackend):
         }
 
         try:
-            response = self._session.post(post_url, data=parameters).json()
+            response = self.post('/timesheets/', data=parameters).json()
         except ValueError:
             raise PushEntryFailed(
                 "Got a non-JSON response when trying to push timesheet"
@@ -118,10 +136,8 @@ class ZebraBackend(BaseBackend):
 
     @needs_authentication
     def get_projects(self):
-        projects_url = self.get_api_url('/projects/')
-
         try:
-            response = self._session.get(projects_url)
+            response = self.get('/projects/')
             projects = response.json()
         except ValueError:
             raise TaxiException(
