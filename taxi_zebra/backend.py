@@ -156,3 +156,21 @@ class ZebraBackend(BaseBackend):
             projects_list.append(p)
 
         return projects_list
+
+    @needs_authentication
+    def get_user_info(self, user_id):
+        user_info_url = self.get_api_url('/user/{}'.format(user_id))
+        return self._session.get(user_info_url).json()
+
+    @needs_authentication
+    def get_timesheets(self, start_date, end_date=None):
+        if not end_date:
+            end_date = datetime.date.today()
+
+        timesheet_url = self.get_api_url('/timesheets')
+        request_params = {
+            'start_date': start_date,
+            'end_date': end_date,
+        }
+
+        return self._session.get(timesheet_url, params=request_params).json()['data']['list']

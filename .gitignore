@@ -1,3 +1,4 @@
 /taxi_zebra.egg-info/
 /dist/
+/build/
 *.pyc
