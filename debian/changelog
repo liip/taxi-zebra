@@ -1,3 +1,9 @@
+taxi-zebra (1.3.0~b3-1) liip; urgency=medium
+
+  * New 1.3.0~b3 upstream release
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Mon, 03 Jul 2017 12:10:58 +0200
+
 taxi-zebra (1.2.0-1) liip; urgency=medium
 
   * New 1.2.0 upstream release
