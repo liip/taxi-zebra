@@ -12,7 +12,7 @@ def hours_to_days(hours):
     """
     Convert the given amount of hours to a 2-tuple `(days, hours)`.
     """
-    days = hours // 8
+    days = int(hours // 8)
     hours_left = hours % 8
 
     return days, hours_left
@@ -26,14 +26,14 @@ def zebra():
     pass
 
 
-def signed_number(number):
+def signed_number(number, precision=2):
     """
     Return the given number as a string with a sign in front of it, ie. `+` if the number is positive, `-` otherwise.
     """
-    if number <= 0:
-        return str(number)
-    else:
-        return '+' + str(number)
+    prefix = '' if number <= 0 else '+'
+    number_str = '{}{:.{precision}f}'.format(prefix, number, precision=precision)
+
+    return number_str
 
 
 def get_first_dow(date):
@@ -69,11 +69,11 @@ def balance(ctx):
     total_duration = sum([float(timesheet['time']) for timesheet in timesheets])
 
     vacation = hours_to_days(user_info['data']['vacation']['difference'])
-    vacation_balance = '{0} days, {1} hours'.format(*vacation)
+    vacation_balance = '{} days, {:.2f} hours'.format(*vacation)
 
     hours_balance = user_info['data']['hours']['hours']['balance']
 
     click.echo("Hours balance: {}".format(signed_number(hours_balance)))
     click.echo("Hours balance after push: {}".format(signed_number(hours_balance + hours_to_be_pushed)))
-    click.echo("Hours done this week: {}".format(total_duration))
+    click.echo("Hours done this week: {:.2f}".format(total_duration))
     click.echo("Vacation left: {}".format(vacation_balance))
