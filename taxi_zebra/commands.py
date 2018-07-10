@@ -77,3 +77,5 @@ def balance(ctx):
     click.echo("Hours balance after push: {}".format(signed_number(hours_balance + hours_to_be_pushed)))
     click.echo("Hours done this week: {:.2f}".format(total_duration))
     click.echo("Vacation left: {}".format(vacation_balance))
+    click.echo()
+    click.echo("https://zebra.liip.ch/user/{}" . format(user_info['data']['user']['id']))
