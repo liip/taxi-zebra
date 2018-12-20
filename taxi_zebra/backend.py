@@ -284,7 +284,7 @@ class ZebraBackend(BaseBackend):
             data = self._session.get(user_info_url).json()['data']
 
             # Roles keys (ids) are strings. Cast them as ints
-            data['roles'] = {int(key): value for key, value in data['roles'].items()}
+            data['roles'] = {int(key): value for key, value in data.get('roles', {}).items()}
 
             self._user_info = data
 
