@@ -64,14 +64,14 @@ def balance(ctx):
     hours_to_be_pushed = timesheet_collection.get_hours(pushed=False, ignored=False, unmapped=False)
 
     today = datetime.date.today()
-    user_info = backend.get_user_info(0)
+    user_info = backend.get_user_info()
     timesheets = backend.get_timesheets(get_first_dow(today), get_last_dow(today))
     total_duration = sum([float(timesheet['time']) for timesheet in timesheets])
 
-    vacation = hours_to_days(user_info['data']['vacation']['difference'])
+    vacation = hours_to_days(user_info['vacation']['difference'])
     vacation_balance = '{} days, {:.2f} hours'.format(*vacation)
 
-    hours_balance = user_info['data']['hours']['hours']['balance']
+    hours_balance = user_info['hours']['hours']['balance']
 
     click.echo("Hours balance: {}".format(signed_number(hours_balance)))
     click.echo("Hours balance after push: {}".format(signed_number(hours_balance + hours_to_be_pushed)))
