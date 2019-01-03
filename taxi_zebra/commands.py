@@ -4,6 +4,7 @@ import click
 
 from taxi.commands.base import cli, get_timesheet_collection_for_context
 from taxi.plugins import plugins_registry
+from taxi.aliases import aliases_database
 
 from .backend import ZebraBackend
 
@@ -58,20 +59,30 @@ def balance(ctx):
 
     Like the hours balance, vacation left, etc.
     """
+    def entries_filter_callback(entries_date, entry):
+        backends = plugins_registry.get_available_backends()
+        zebra_backends = {
+            backend_name for backend_name in backends
+            if isinstance(plugins_registry.get_backend(backend_name), ZebraBackend)
+        }
+
+        return (not any((entry.ignored, entry.pushed, entry.unmapped)) and entry.alias in aliases_database and
+                aliases_database[entry.alias].backend in zebra_backends)
+
     backend = plugins_registry.get_backends_by_class(ZebraBackend)[0]
 
     timesheet_collection = get_timesheet_collection_for_context(ctx, None)
-    hours_to_be_pushed = timesheet_collection.get_hours(pushed=False, ignored=False, unmapped=False)
+    hours_to_be_pushed = timesheet_collection.get_hours_by_callback(entries_filter_callback)
 
     today = datetime.date.today()
-    user_info = backend.get_user_info(0)
+    user_info = backend.get_user_info()
     timesheets = backend.get_timesheets(get_first_dow(today), get_last_dow(today))
     total_duration = sum([float(timesheet['time']) for timesheet in timesheets])
 
     vacation = hours_to_days(user_info['data']['vacation']['difference'])
     vacation_balance = '{} days, {:.2f} hours'.format(*vacation)
 
-    hours_balance = user_info['data']['hours']['hours']['balance']
+    hours_balance = user_info['hours']['hours']['balance']
 
     click.echo("Hours balance: {}".format(signed_number(hours_balance)))
     click.echo("Hours balance after push: {}".format(signed_number(hours_balance + hours_to_be_pushed)))
