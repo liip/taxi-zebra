@@ -19,4 +19,7 @@ Package: taxi-backend-zebra
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}
 Provides: taxi-backend
+Enhances: taxi
 Description: Taxi backend to Liip's Zebra
+ This is the Zebra backend for Taxi. It exposes the zebra protocol to
+ push entries and fetch projects and activities from Zebra.
