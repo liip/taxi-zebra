@@ -1,6 +1,6 @@
 Source: taxi-zebra
 Section: comm
-Priority: extra
+Priority: optional
 Maintainer: Didier Raboud <didier.raboud@liip.ch>
 Build-Depends: bash-completion,
                debhelper (>= 9),
