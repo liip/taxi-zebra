@@ -6,4 +6,3 @@
 override_dh_auto_test:
 	# Allow tests to fail
 	- dh_auto_test
-
