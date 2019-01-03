@@ -1,9 +1,12 @@
-Files: *
-Copyright: Copyright 2015 Sylvain Fankhauser <sylvain.fankhauser@liip.ch>
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: taxi-zebra
+Upstream-Contact: Sylvain Fankhauser <sylvain.fankhauser@liip.ch>
+Source: https://github.com/sephii/taxi-zebra
+Copyright: 2015-2018 Sylvain Fankhauser <sylvain.fankhauser@liip.ch>
 License: ??
 
 Files: debian/*
-Copyright: 2015 Didier Raboud <didier.raboud@liip.ch>
+Copyright: 2015-2018 Didier Raboud <didier.raboud@liip.ch>
 License: GPL-2+
  This program is free software; you can redistribute it
  and/or modify it under the terms of the GNU General Public
