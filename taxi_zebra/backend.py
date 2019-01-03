@@ -6,7 +6,6 @@ from functools import wraps
 
 import click
 import requests
-from PyInquirer import Separator, prompt
 from six.moves.urllib import parse
 
 from taxi import __version__ as taxi_version
@@ -71,23 +70,63 @@ def show_response_messages(response_json):
         click.secho(message['text'], **message_type_kwargs.get(message['type'], {}))
 
 
+def prompt_choices(message, choices, default=None):
+    def get_choice_key(choice, choice_pos):
+        try:
+            return choice[2]
+        except IndexError:
+            return None if choice[0] is None else choice_pos
+
+    enumerated_choices = list(enumerate(choices))
+    choices_by_key = [(get_choice_key(choice, i), choice) for i, choice in enumerated_choices]
+    choices_by_key_dict = dict(choices_by_key)
+
+    click.secho(message + "\n", bold=True)
+
+    for choice_key, choice in choices_by_key:
+        if choice[0] is not None:
+            click.echo(click.style("[{}]".format(choice_key), fg='yellow') + " " + choice[1])
+        else:
+            click.echo(choice[1])
+
+    click.echo()
+
+    while True:
+        try:
+            choice_id = click.prompt("Select a role").lstrip('[').rstrip(']')
+        except click.exceptions.Abort:
+            # Put a newline after the ^C character so that the failed entry is displayed on its own line
+            click.echo()
+            return default
+        else:
+            try:
+                choice_id = int(choice_id)
+            except ValueError:
+                pass
+
+            try:
+                return choices_by_key_dict[choice_id][0]
+            except KeyError:
+                click.secho("`{}` is not a a valid option. Please try again.".format(choice_id), fg='red')
+
+    return choice_id
+
+
 def input_role(roles):
-    individual_action = object()
+    individual_action = 'i'
+    cancel = 'c'
+
     choices = list(((int(item[0]), item[1]) for item in roles.items())) + [
-        (None, Separator()),
-        # Using `None` as a value would make PyInquirer ignore the answer
-        (individual_action, "Individual action ❮ YOLO"),
-        (None, "Cancel, skip this entry for now"),
+        (None, '-----'),
+        (individual_action, "Individual action ❮ YOLO", individual_action),
+        (cancel, "Cancel, skip this entry for now", cancel),
     ]
 
-    selected_role_id = prompt([{
-        'type': 'list',
-        'name': 'role',
-        'choices': [{'name': choice[1], 'value': choice[0]} for choice in choices],
-        'message': 'In which role do you want to push this entry?',
-    }]).get('role', -1)
+    selected_role_id = prompt_choices(
+        message='In which role do you want to push this entry?', choices=choices, default=cancel
+    )
 
-    if selected_role_id == -1:
+    if selected_role_id == cancel:
         raise CancelInput()
     elif selected_role_id == individual_action:
         selected_role_id = None
@@ -204,13 +243,17 @@ class ZebraBackend(BaseBackend):
                     raise PushEntryFailed("Skipped")
 
                 if role_id is not None:
-                    create_alias = prompt({
-                        'type': 'confirm',
-                        'message': "Make the {} alias always use this role?".format(entry.alias),
-                        'name': 'create_alias'
-                    })
+                    click.echo("You have selected the role {}".format(click.style(user_roles[role_id], fg='yellow')))
+                    try:
+                        create_alias = click.confirm(
+                            "Make the {} alias always use this role?".format(click.style(entry.alias, fg='yellow')),
+                            prompt_suffix=' ', default=True
+                        )
+                    except click.exceptions.Abort:
+                        click.echo()
+                        raise PushEntryFailed("Skipped")
 
-                    if create_alias['create_alias']:
+                    if create_alias:
                         mapping = aliases_database[entry.alias]
                         new_mapping = Mapping(mapping=mapping.mapping[:2] + (role_id,), backend=mapping.backend)
                         # Replace the mapping in the aliases database for the next entries
