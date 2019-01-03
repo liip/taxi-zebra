@@ -12,7 +12,7 @@ Build-Depends: bash-completion,
                python3-six (>= 1.9.0)
 Standards-Version: 4.3.0
 Homepage: https://github.com/sephii/taxi-zebra
-Vcs-Git: git://github.com/sephii/taxi-zebra.git
+Vcs-Git: https://github.com/sephii/taxi-zebra.git
 Vcs-Browser: https://github.com/sephii/taxi-zebra
 
 Package: taxi-backend-zebra
