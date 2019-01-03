@@ -1,3 +1,19 @@
+taxi-zebra (1.4.0-1~2019010300) unstable-ci; urgency=medium
+
+  * New 1.4.0 upstream release
+    - Add support for roles
+
+  * Drop Gilles as Uploader, with thanks for his past work
+  * Bump S-V to 4.3.0 without changes
+  * Priority is now optional
+  * Trim trailing whitespace.
+  * Use secure URI in Vcs control header.
+  * Refresh copyright
+  * Bump debhelper compat to 11
+  * Add a minimal description
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Thu, 03 Jan 2019 10:34:31 +0100
+
 taxi-zebra (1.3.0-1) liip; urgency=medium
 
   * New 1.3.0 upstream release
