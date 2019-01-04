@@ -1,3 +1,10 @@
+taxi-zebra (1.4.1-1~2019010400) unstable-ci; urgency=medium
+
+  * New 1.4.1 upstream release
+    - Fix call to get_user_info with new API
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Fri, 04 Jan 2019 10:34:55 +0100
+
 taxi-zebra (1.4.0-1~2019010301) unstable-ci; urgency=medium
 
   * Use debhelper-compat (= 12) B-D
