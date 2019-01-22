@@ -1,3 +1,12 @@
+taxi-zebra (1.4.2-1) unstable-ci; urgency=medium
+
+  * New 1.4.2 upstream release
+    - Add license text (fixes #11); update d/copyright
+    - Make role prompt less confusing (fixes #13)
+    - Add 'never' option to role mapping question (fixes #12)
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Tue, 22 Jan 2019 11:56:03 +0100
+
 taxi-zebra (1.4.1-1~2019010400) unstable-ci; urgency=medium
 
   * New 1.4.1 upstream release
