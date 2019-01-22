@@ -246,9 +246,9 @@ class ZebraBackend(BaseBackend):
 
         if not response:
             if response_json.get('errorCode') == 'role_needed':
-                click.secho("\nYou're trying to push \"{}\" on the {} alias, which doesn't have any role set.\n".format(
-                    entry.description, entry.alias
-                ), fg='yellow')
+                click.secho("\nYou're trying to push the following entry to an activity which doesn't have any"
+                            " associated role:\n\n{}\n".format(self.context['view'].get_entry_status(entry)),
+                            fg='yellow')
 
                 try:
                     role_id = input_role(user_roles)
