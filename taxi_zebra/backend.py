@@ -305,16 +305,16 @@ class ZebraBackend(BaseBackend):
                 "credentials" % response.content
             )
         projects_list = []
-        date_attrs = (('start_date', 'startdate'), ('end_date', 'enddate'))
+        date_attrs = ('start_date', 'end_date')
 
         for project in projects['data']:
             p = Project(int(project['id']), project['name'],
                         Project.STATUS_ACTIVE, project['description'],
                         project['budget'])
 
-            for date_attr, proj_date in date_attrs:
+            for date_attr in date_attrs:
                 try:
-                    date = datetime.strptime(project[proj_date],
+                    date = datetime.strptime(project[date_attr],
                                              '%Y-%m-%d').date()
                 except (ValueError, TypeError):
                     date = None
