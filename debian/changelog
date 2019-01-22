@@ -1,3 +1,9 @@
+taxi-zebra (1.4.3-1~2019012201) unstable-ci; urgency=medium
+
+  * Add Breaks against taxi (<< 4.5.1) to enforce sync upgrade
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Tue, 22 Jan 2019 13:53:09 +0100
+
 taxi-zebra (1.4.3-1~2019012200) unstable-ci; urgency=medium
 
   * New 1.4.3 upstream release
