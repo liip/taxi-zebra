@@ -231,7 +231,7 @@ class ZebraBackend(BaseBackend):
     @needs_authentication
     def push_entry(self, date, entry):
         user_roles = self.get_user_info()['roles']
-        alias_role_id = get_role_from_entry(entry)
+        role_id = alias_role_id = get_role_from_entry(entry)
 
         response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != 0 else None)
 
