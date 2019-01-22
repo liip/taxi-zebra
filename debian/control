@@ -18,6 +18,7 @@ Vcs-Browser: https://github.com/sephii/taxi-zebra
 Package: taxi-backend-zebra
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}
+Breaks: taxi (<< 4.5.1~)
 Provides: taxi-backend
 Enhances: taxi
 Description: Taxi backend to Liip's Zebra
