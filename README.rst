@@ -8,7 +8,7 @@ activities from Zebra.
 Installation
 ------------
 
-    pip install taxi-zebra
+    taxi plugin install zebra
 
 Usage
 -----

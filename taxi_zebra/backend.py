@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 import logging
@@ -134,6 +135,18 @@ def input_role(roles):
     return selected_role_id
 
 
+def update_alias_mapping(settings, alias, new_mapping):
+    """
+    Override `alias` mapping in the user configuration file with the given `new_mapping`, which should be a tuple with
+    2 or 3 elements (in the form `(project_id, activity_id, role_id)`).
+    """
+    mapping = aliases_database[alias]
+    new_mapping = Mapping(mapping=new_mapping, backend=mapping.backend)
+    aliases_database[alias] = new_mapping
+    settings.add_alias(alias, new_mapping)
+    settings.write_config()
+
+
 class ZebraBackend(BaseBackend):
     def __init__(self, *args, **kwargs):
         super(ZebraBackend, self).__init__(*args, **kwargs)
@@ -218,9 +231,9 @@ class ZebraBackend(BaseBackend):
     @needs_authentication
     def push_entry(self, date, entry):
         user_roles = self.get_user_info()['roles']
-        role_id = get_role_from_entry(entry)
+        alias_role_id = get_role_from_entry(entry)
 
-        response = self._push_entry(date, entry, role_id=role_id)
+        response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != 0 else None)
 
         try:
             response_json = response.json()
@@ -233,37 +246,37 @@ class ZebraBackend(BaseBackend):
 
         if not response:
             if response_json.get('errorCode') == 'role_needed':
-                click.secho("\nYou're trying to push \"{}\" on the {} alias, which doesn't have any role set.\n".format(
-                    entry.description, entry.alias
-                ), fg='yellow')
+                click.secho("\nYou're trying to push the following entry to an activity which doesn't have any"
+                            " associated role:\n\n{}\n".format(self.context['view'].get_entry_status(entry)),
+                            fg='yellow')
 
                 try:
                     role_id = input_role(user_roles)
                 except CancelInput:
                     raise PushEntryFailed("Skipped")
 
-                if role_id is not None:
+                if role_id is not None and alias_role_id != 0:
                     click.echo("You have selected the role {}".format(click.style(user_roles[role_id], fg='yellow')))
                     try:
-                        create_alias = click.confirm(
-                            "Make the {} alias always use this role?".format(click.style(entry.alias, fg='yellow')),
-                            prompt_suffix=' ', default=True
+                        create_alias = click.prompt(
+                            "Make the {} alias always use this role? ([y]es, [n]o, [N]ever)".format(
+                                click.style(entry.alias, fg='yellow')
+                            ), prompt_suffix=' ', type=click.Choice(['y', 'n', 'N']), default='y', show_choices=False
                         )
                     except click.exceptions.Abort:
                         click.echo()
                         raise PushEntryFailed("Skipped")
 
-                    if create_alias:
-                        mapping = aliases_database[entry.alias]
-                        new_mapping = Mapping(mapping=mapping.mapping[:2] + (role_id,), backend=mapping.backend)
-                        # Replace the mapping in the aliases database for the next entries
-                        aliases_database[entry.alias] = new_mapping
-                        self.context['settings'].add_alias(entry.alias, new_mapping)
-                        self.context['settings'].write_config()
+                    if create_alias == 'y':
+                        update_alias_mapping(self.context['settings'], entry.alias,
+                                             aliases_database[entry.alias].mapping[:2] + (role_id,))
 
                         click.secho("Alias {} now points to the role {}".format(
                             entry.alias, user_roles[role_id]
                         ), fg='green')
+                    elif create_alias == 'N':
+                        update_alias_mapping(self.context['settings'], entry.alias,
+                                             aliases_database[entry.alias].mapping[:2] + (0,))
 
                 response = self._push_entry(date, entry, role_id=role_id, individual_action=role_id is None)
                 response_json = response.json()
@@ -292,16 +305,16 @@ class ZebraBackend(BaseBackend):
                 "credentials" % response.content
             )
         projects_list = []
-        date_attrs = (('start_date', 'startdate'), ('end_date', 'enddate'))
+        date_attrs = ('start_date', 'end_date')
 
         for project in projects['data']:
             p = Project(int(project['id']), project['name'],
                         Project.STATUS_ACTIVE, project['description'],
                         project['budget'])
 
-            for date_attr, proj_date in date_attrs:
+            for date_attr in date_attrs:
                 try:
-                    date = datetime.strptime(project[proj_date],
+                    date = datetime.strptime(project[date_attr],
                                              '%Y-%m-%d').date()
                 except (ValueError, TypeError):
                     date = None
