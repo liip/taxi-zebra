@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import inspect
 import logging
 from datetime import datetime
 from functools import wraps
@@ -8,12 +9,12 @@ from functools import wraps
 import click
 import requests
 from six.moves.urllib import parse
-
 from taxi import __version__ as taxi_version
 from taxi.aliases import Mapping, aliases_database
 from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
+
 
 logger = logging.getLogger(__name__)
 
@@ -257,11 +258,22 @@ class ZebraBackend(BaseBackend):
 
                 if role_id is not None and alias_role_id != 0:
                     click.echo("You have selected the role {}".format(click.style(user_roles[role_id], fg='yellow')))
+                    prompt_kwargs = {
+                        'prompt_suffix': ' ',
+                        'type': click.Choice(['y', 'n', 'N']),
+                        'default': 'y'
+                    }
+
+                    # `show_choices` has been added in click 7.0. Support for click < 7 is needed for distributions
+                    # that only provide click 6 in their package managers
+                    if 'show_choices' in inspect.getargspec(click.prompt).args:
+                        prompt_kwargs['show_choices'] = False
+
                     try:
                         create_alias = click.prompt(
                             "Make the {} alias always use this role? ([y]es, [n]o, [N]ever)".format(
                                 click.style(entry.alias, fg='yellow')
-                            ), prompt_suffix=' ', type=click.Choice(['y', 'n', 'N']), default='y', show_choices=False
+                            ), **prompt_kwargs
                         )
                     except click.exceptions.Abort:
                         click.echo()
