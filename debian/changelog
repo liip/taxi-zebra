@@ -1,3 +1,12 @@
+taxi-zebra (1.4.4-1~2019012401) unstable-ci; urgency=medium
+
+  * New 1.4.4 upstream release
+    * Add support for click < 7
+
+  * Correct gbp's branch
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Thu, 24 Jan 2019 15:54:44 +0100
+
 taxi-zebra (1.4.3-1~2019012201) unstable-ci; urgency=medium
 
   * Add Breaks against taxi (<< 4.5.1) to enforce sync upgrade
