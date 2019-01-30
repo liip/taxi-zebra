@@ -1,3 +1,10 @@
+taxi-zebra (1.4.5-1~2019013000) unstable-ci; urgency=medium
+
+  * New 1.4.4 upstream release
+    - Handle role_invalid error from Zebra
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Wed, 30 Jan 2019 12:37:36 +0100
+
 taxi-zebra (1.4.4-1~2019012401) unstable-ci; urgency=medium
 
   * New 1.4.4 upstream release
