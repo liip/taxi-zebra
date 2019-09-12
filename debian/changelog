@@ -1,3 +1,9 @@
+taxi-zebra (1.4.6-1) unstable-ci; urgency=medium
+
+  * New 1.4.6 upstream release
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Thu, 12 Sep 2019 14:18:20 +0200
+
 taxi-zebra (1.4.5-1~2019013000) unstable-ci; urgency=medium
 
   * New 1.4.4 upstream release
