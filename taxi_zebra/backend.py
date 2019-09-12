@@ -118,7 +118,7 @@ def input_role(roles):
     individual_action = 'i'
     cancel = 'c'
 
-    choices = list(((int(item[0]), item[1]) for item in roles.items())) + [
+    choices = list(((int(item[0]), item[1]) for item in sorted(roles.items(), key=lambda item: item[1]))) + [
         (None, '-----'),
         (individual_action, "Individual action ❮ YOLO", individual_action),
         (cancel, "Cancel, skip this entry for now", cancel),
