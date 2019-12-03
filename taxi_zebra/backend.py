@@ -184,6 +184,14 @@ class ZebraBackend(BaseBackend):
             host=self.hostname, port=self.port, base_path=self.path, url=url
         )
 
+    def zebra_request(self, method, url, **kwargs):
+        response = self._session.request(method=method, url=url, **kwargs)
+
+        if response.status_code in {401, 403}:
+            raise TaxiException("Login failed, please check your credentials")
+
+        return response
+
     def append_token(self, url):
         split_url = list(parse.urlsplit(url))
 
@@ -206,7 +214,7 @@ class ZebraBackend(BaseBackend):
         }
 
         try:
-            self._session.post(login_url, data=parameters_dict).json()
+            self.zebra_request('post', login_url, data=parameters_dict).json()
         except ValueError:
             raise TaxiException("Login failed, please check your credentials")
 
@@ -227,7 +235,7 @@ class ZebraBackend(BaseBackend):
             'description': entry.description,
         }, **kwargs)
 
-        response = self._session.post(post_url, data=to_zebra_params(parameters))
+        response = self.zebra_request('post', post_url, data=to_zebra_params(parameters))
 
         try:
             response_json = response.json()
@@ -312,7 +320,7 @@ class ZebraBackend(BaseBackend):
         projects_url = self.get_api_url('/projects/')
 
         try:
-            response = self._session.get(projects_url)
+            response = self.zebra_request('get', projects_url)
             projects = response.json()
         except ValueError:
             raise TaxiException(
@@ -352,7 +360,7 @@ class ZebraBackend(BaseBackend):
     def get_user_info(self):
         if getattr(self, '_user_info', None) is None:
             user_info_url = self.get_api_url('/users/me')
-            data = self._session.get(user_info_url).json()['data']
+            data = self.zebra_request('get', user_info_url).json()['data']
 
             # Roles keys (ids) are strings. Cast them as ints
             data['roles'] = {int(key): value for key, value in data.get('roles', {}).items()}
@@ -372,4 +380,4 @@ class ZebraBackend(BaseBackend):
             'end_date': end_date,
         }
 
-        return self._session.get(timesheet_url, params=request_params).json()['data']['list']
+        return self.zebra_request('get', timesheet_url, params=request_params).json()['data']['list']
