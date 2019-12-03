@@ -120,7 +120,7 @@ def input_role(roles):
 
     choices = list(((int(item[0]), item[1]) for item in sorted(roles.items(), key=lambda item: item[1]))) + [
         (None, '-----'),
-        (individual_action, "Individual action ❮ YOLO", individual_action),
+        (individual_action, "Individual action", individual_action),
         (cancel, "Cancel, skip this entry for now", cancel),
     ]
 
