@@ -244,10 +244,6 @@ class ZebraBackend(BaseBackend):
                 "Got a non-JSON response when trying to push timesheet"
             )
 
-        if not response and response_json.get('errorCode') == 'role_invalid':
-            raise PushEntryFailed("Invalid role. Please check this role is assigned to you and update your alias"
-                                  " accordingly.")
-
         show_response_messages(response_json)
 
         return response
@@ -261,10 +257,18 @@ class ZebraBackend(BaseBackend):
         response_json = response.json()
 
         if not response:
-            if response_json.get('errorCode') == 'role_needed':
-                click.secho("\nYou're trying to push the following entry to an activity which doesn't have any"
-                            " associated role:\n\n{}\n".format(self.context['view'].get_entry_status(entry)),
-                            fg='yellow')
+            error_code = response_json.get('errorCode')
+            if error_code in {'role_needed', 'role_invalid'}:
+                if error_code == 'role_needed':
+                    msg = "You're trying to push the following entry to an activity which doesn't have any associated role:"
+                elif error_code == 'role_invalid':
+                    msg = "You're trying to use a role you don't have (anymore):"
+                else:
+                    msg = "You can't use that role:"
+
+                click.secho("\n{}\n\n{}\n".format(
+                    msg, self.context['view'].get_entry_status(entry)
+                ), fg='yellow')
 
                 try:
                     role_id = input_role(user_roles)
