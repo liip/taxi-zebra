@@ -5,8 +5,8 @@ from taxi_zebra import __version__
 
 install_requires = [
     'requests>=2.3.0',
-    'taxi>=4.5.1',
     'six>=1.9.0',
+    'taxi>=5.0',
     'click>=7.0',
 ]
 

@@ -1,26 +1,25 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-import inspect
 import logging
+from collections import namedtuple
 from datetime import datetime
 from functools import wraps
 
 import click
 import requests
-from six.moves.urllib import parse
+from urllib import parse
 from taxi import __version__ as taxi_version
-from taxi.aliases import Mapping, aliases_database
+from taxi.aliases import aliases_database
 from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
+
+from .ui import prompt_role, show_response_messages
+from .utils import get_role_id_from_alias, to_zebra_params
 
 
 logger = logging.getLogger(__name__)
 
 
-class CancelInput(Exception):
-    pass
+Role = namedtuple('Role', ['id', 'parent_id', 'full_name'])
 
 
 def needs_authentication(f):
@@ -30,122 +29,6 @@ def needs_authentication(f):
         return f(*args, **kwargs)
 
     return wrapper
-
-
-def get_role_from_entry(entry):
-    try:
-        mapping = aliases_database[entry.alias]
-    except KeyError:
-        role_id = None
-    else:
-        try:
-            role_id = mapping.mapping[2]
-        except IndexError:
-            role_id = None
-
-    return role_id
-
-
-def to_zebra_params(params):
-    """
-    Transforms the given `params` dict to values that are understood by Zebra (eg. False is represented as 'false')
-    """
-    def to_zebra_value(value):
-        transform_funcs = {
-            bool: lambda v: 'true' if v else 'false',
-        }
-
-        return transform_funcs.get(type(value), lambda v: v)(value)
-
-    return {param: to_zebra_value(value) for param, value in params.items()}
-
-
-def show_response_messages(response_json):
-    """
-    Show all messages in the `messages` key of the given dict.
-    """
-    message_type_kwargs = {
-        'warning': {'fg': 'yellow'},
-        'error': {'fg': 'red'},
-    }
-    for message in response_json.get('messages', []):
-        click.secho(message['text'], **message_type_kwargs.get(message['type'], {}))
-
-
-def prompt_choices(message, choices, default=None):
-    def get_choice_key(choice, choice_pos):
-        try:
-            return choice[2]
-        except IndexError:
-            return None if choice[0] is None else choice_pos
-
-    enumerated_choices = list(enumerate(choices))
-    choices_by_key = [(get_choice_key(choice, i), choice) for i, choice in enumerated_choices]
-    choices_by_key_dict = dict(choices_by_key)
-
-    click.secho(message + "\n", bold=True)
-
-    for choice_key, choice in choices_by_key:
-        if choice[0] is not None:
-            click.echo(click.style("[{}]".format(choice_key), fg='yellow') + " " + choice[1])
-        else:
-            click.echo(choice[1])
-
-    click.echo()
-
-    while True:
-        try:
-            choice_id = click.prompt("Select a role").lstrip('[').rstrip(']')
-        except click.exceptions.Abort:
-            # Put a newline after the ^C character so that the failed entry is displayed on its own line
-            click.echo()
-            return default
-        else:
-            try:
-                choice_id = int(choice_id)
-            except ValueError:
-                pass
-
-            try:
-                return choices_by_key_dict[choice_id][0]
-            except KeyError:
-                click.secho("`{}` is not a a valid option. Please try again.".format(choice_id), fg='red')
-
-    return choice_id
-
-
-def input_role(roles):
-    individual_action = 'i'
-    cancel = 'c'
-
-    choices = list(((int(item[0]), item[1]) for item in sorted(roles.items(), key=lambda item: item[1]))) + [
-        (None, '-----'),
-        (individual_action, "Individual action", individual_action),
-        (cancel, "Cancel, skip this entry for now", cancel),
-    ]
-
-    selected_role_id = prompt_choices(
-        message='In which role do you want to push this entry?', choices=choices, default=cancel
-    )
-
-    if selected_role_id == cancel:
-        raise CancelInput()
-    elif selected_role_id == individual_action:
-        selected_role_id = None
-
-    return selected_role_id
-
-
-def update_alias_mapping(settings, alias, new_mapping):
-    """
-    Override `alias` mapping in the user configuration file with the given `new_mapping`, which should be a tuple with
-    2 or 3 elements (in the form `(project_id, activity_id, role_id)`).
-    """
-    mapping = aliases_database[alias]
-    new_mapping = Mapping(mapping=new_mapping, backend=mapping.backend)
-    aliases_database[alias] = new_mapping
-    settings.add_alias(alias, new_mapping)
-    settings.write_config()
 
 
 class ZebraBackend(BaseBackend):
@@ -250,8 +133,8 @@ class ZebraBackend(BaseBackend):
 
     @needs_authentication
     def push_entry(self, date, entry):
-        user_roles = self.get_user_info()['roles']
-        role_id = alias_role_id = get_role_from_entry(entry)
+        user_roles = self.get_user_roles()
+        alias_role_id = get_role_id_from_alias(entry.alias)
 
         response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != 0 else None)
         response_json = response.json()
@@ -260,64 +143,32 @@ class ZebraBackend(BaseBackend):
             error_code = response_json.get('errorCode')
             if error_code in {'role_needed', 'role_invalid'}:
                 if error_code == 'role_needed':
-                    msg = "You're trying to push the following entry to an activity which doesn't have any associated role:"
+                    prompt = "You're trying to push the following entry to an activity which doesn't have any associated role:"
                 elif error_code == 'role_invalid':
-                    msg = "You're trying to use a role you don't have (anymore):"
+                    prompt = "You're trying to use a role you don't have (anymore):"
                 else:
-                    msg = "You can't use that role:"
+                    prompt = "You can't use that role:"
 
                 click.secho("\n{}\n\n{}\n".format(
-                    msg, self.context['view'].get_entry_status(entry)
+                    prompt, self.context['view'].get_entry_status(entry)
                 ), fg='yellow')
 
-                try:
-                    role_id = input_role(user_roles)
-                except CancelInput:
-                    raise PushEntryFailed("Skipped")
+                selected_role = prompt_role(entry, user_roles.values(), self.context)
+                selected_role_id = selected_role.id if selected_role else None
 
-                if role_id is not None and alias_role_id != 0:
-                    click.echo("You have selected the role {}".format(click.style(user_roles[role_id], fg='yellow')))
-                    prompt_kwargs = {
-                        'prompt_suffix': ' ',
-                        'type': click.Choice(['y', 'n', 'N']),
-                        'default': 'y'
-                    }
-
-                    # `show_choices` has been added in click 7.0. Support for click < 7 is needed for distributions
-                    # that only provide click 6 in their package managers
-                    if 'show_choices' in inspect.getargspec(click.prompt).args:
-                        prompt_kwargs['show_choices'] = False
-
-                    try:
-                        create_alias = click.prompt(
-                            "Make the {} alias always use this role? ([y]es, [n]o, [N]ever)".format(
-                                click.style(entry.alias, fg='yellow')
-                            ), **prompt_kwargs
-                        )
-                    except click.exceptions.Abort:
-                        click.echo()
-                        raise PushEntryFailed("Skipped")
-
-                    if create_alias == 'y':
-                        update_alias_mapping(self.context['settings'], entry.alias,
-                                             aliases_database[entry.alias].mapping[:2] + (role_id,))
-
-                        click.secho("Alias {} now points to the role {}".format(
-                            entry.alias, user_roles[role_id]
-                        ), fg='green')
-                    elif create_alias == 'N':
-                        update_alias_mapping(self.context['settings'], entry.alias,
-                                             aliases_database[entry.alias].mapping[:2] + (0,))
-
-                response = self._push_entry(date, entry, role_id=role_id, individual_action=role_id is None)
+                response = self._push_entry(
+                    date, entry, role_id=selected_role_id,
+                    individual_action=selected_role_id is None
+                )
                 response_json = response.json()
+        else:
+            selected_role = user_roles[alias_role_id]
 
         if not response_json['success']:
             error = response_json.get('error', "Unknown error")
-
             raise PushEntryFailed(error)
 
-        return "individual action" if not role_id else "as {}".format(user_roles[role_id])
+        return "individual action" if not selected_role else "as {}".format(selected_role.full_name)
 
     @needs_authentication
     def get_projects(self):
@@ -335,9 +186,10 @@ class ZebraBackend(BaseBackend):
         date_attrs = ('start_date', 'end_date')
 
         for project in projects['data']:
+            team = int(project['circle_id']) if project['circle_id'] else None
             p = Project(int(project['id']), project['name'],
                         Project.STATUS_ACTIVE, project['description'],
-                        project['budget'])
+                        project['budget'], team=team)
 
             for date_attr in date_attrs:
                 try:
@@ -366,12 +218,28 @@ class ZebraBackend(BaseBackend):
             user_info_url = self.get_api_url('/users/me')
             data = self.zebra_request('get', user_info_url).json()['data']
 
-            # Roles keys (ids) are strings. Cast them as ints
-            data['roles'] = {int(key): value for key, value in data.get('roles', {}).items()}
-
             self._user_info = data
 
         return self._user_info
+
+    def get_user_roles(self):
+        def zebra_role_to_role(id_, role):
+            if isinstance(role, dict):
+                return Role(
+                    id=int(id_),
+                    parent_id=int(role['parent_id']) if role['parent_id'] else None,
+                    full_name=role['full_name']
+                )
+            else:
+                return Role(id=int(id_), parent_id=None, full_name=role)
+
+        user_info = self.get_user_info()
+        roles = {
+            int(id_): zebra_role_to_role(id_, role)
+            for id_, role in user_info.get('roles', {}).items()
+        }
+
+        return roles
 
     @needs_authentication
     def get_timesheets(self, start_date, end_date=None):
