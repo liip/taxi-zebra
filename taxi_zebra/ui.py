@@ -13,8 +13,8 @@ class CancelInput(Exception):
     pass
 
 
-Option = namedtuple('Option', ['value', 'label', 'key', 'style'],
-                    defaults=(None, {}))
+Option = namedtuple('Option', ['value', 'label', 'key', 'style'])
+Option.__new__.__defaults__ = (None, {})
 
 
 def show_response_messages(response_json):
