@@ -5,8 +5,7 @@ from taxi_zebra import __version__
 
 install_requires = [
     'requests>=2.3.0',
-    'taxi>=4.5.1',
-    'six>=1.9.0',
+    'taxi>=5.0',
     'click>=7.0',
 ]
 
@@ -20,8 +19,14 @@ setup(
     url='https://github.com/sephii/taxi-zebra',
     install_requires=install_requires,
     license='wtfpl',
+    python_requires=">=3.5",
     entry_points={
         'taxi.backends': 'zebra = taxi_zebra.backend:ZebraBackend',
         'taxi.commands': ['zebra = taxi_zebra.commands'],
-    }
+    },
+    classifiers=[
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+    ]
 )
