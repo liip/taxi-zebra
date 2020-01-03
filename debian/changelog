@@ -1,3 +1,9 @@
+taxi-zebra (2.0.2-1~2020010300) unstable-ci; urgency=medium
+
+  * 2.0.2 release
+
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Fri, 03 Jan 2020 14:31:24 +0100
+
 taxi-zebra (2.0.1-1) unstable-ci; urgency=medium
 
   * New 2.0.1 upstream release
