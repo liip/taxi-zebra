@@ -162,7 +162,7 @@ class ZebraBackend(BaseBackend):
                 )
                 response_json = response.json()
         else:
-            selected_role = user_roles[alias_role_id]
+            selected_role = user_roles[alias_role_id] if alias_role_id else None
 
         if not response_json['success']:
             error = response_json.get('error', "Unknown error")
