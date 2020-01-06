@@ -153,7 +153,7 @@ def prompt_role(entry, roles, context):
             )
 
             click.secho("Alias {} now points to the role {}".format(
-                entry.alias, role.full_nam
+                entry.alias, role.full_name
             ), fg='green')
         elif create_alias == 'N':
             update_alias_mapping(
