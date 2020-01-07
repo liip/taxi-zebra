@@ -79,5 +79,6 @@ def balance(ctx):
     click.echo("Hours balance: {}".format(signed_number(hours_balance)))
     click.echo("Hours balance after push: {}".format(signed_number(hours_balance + hours_to_be_pushed)))
     click.echo("Hours done this week: {:.2f}".format(total_duration))
-    click.echo("Hours done today: {:.2f}".format(total_duration_today + hours_to_be_pushed))
+    click.echo("Hours done today: {:.2f}".format(total_duration_today))
+    click.echo("Hours to be pushed: {:.2f}".format(hours_to_be_pushed))
     click.echo("Vacation left: {}".format(vacation_balance))
