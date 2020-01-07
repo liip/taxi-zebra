@@ -66,9 +66,9 @@ def balance(ctx):
     today = datetime.date.today()
 
     user_info = backend.get_user_info()
-    timesheets = backend.get_timesheets(get_first_dow(today), get_last_dow(today))
+    timesheets_week = backend.get_timesheets(get_first_dow(today), get_last_dow(today))
     timesheets_today = backend.get_timesheets(today, today)
-    total_duration = sum([float(timesheet['time']) for timesheet in timesheets])
+    total_duration_week = sum([float(timesheet['time']) for timesheet in timesheets_week])
     total_duration_today = sum([float(timesheet['time']) for timesheet in timesheets_today])
 
     vacation = hours_to_days(user_info['vacation']['difference'])
@@ -78,7 +78,7 @@ def balance(ctx):
 
     click.echo("Hours balance: {}".format(signed_number(hours_balance)))
     click.echo("Hours balance after push: {}".format(signed_number(hours_balance + hours_to_be_pushed)))
-    click.echo("Hours done this week: {:.2f}".format(total_duration))
+    click.echo("Hours done this week: {:.2f}".format(total_duration_week))
     click.echo("Hours done today: {:.2f}".format(total_duration_today))
     click.echo("Hours to be pushed: {:.2f}".format(hours_to_be_pushed))
     click.echo("Vacation left: {}".format(vacation_balance))
