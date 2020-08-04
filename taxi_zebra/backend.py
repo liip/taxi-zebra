@@ -153,7 +153,7 @@ class ZebraBackend(BaseBackend):
                     prompt, self.context['view'].get_entry_status(entry)
                 ), fg='yellow')
 
-                selected_role = prompt_role(entry, user_roles.values(), self.context)
+                selected_role = prompt_role(entry, list(user_roles.values()), self.context)
                 selected_role_id = selected_role.id if selected_role else None
 
                 response = self._push_entry(
