@@ -130,7 +130,7 @@ def test_role_is_not_prompted_when_alias_has_role(authenticated_responses,
     assert "role_id=2" in push_call.request.body
 
 
-def test_push_shows_backend_messages(authenticated_responses, backend, capsys):
+def test_push_returns_backend_messages(authenticated_responses, backend):
     success_response = {"success": True, "messages": [{"text": "Hello world",
                                                        "type": "warning"}]}
 
@@ -139,10 +139,9 @@ def test_push_shows_backend_messages(authenticated_responses, backend, capsys):
         status=200, content_type="application/json"
     )
     entry = Entry(alias="alias1", duration=1, description="")
-    backend.push_entry(datetime.date.today(), entry)
+    additional_info = backend.push_entry(datetime.date.today(), entry)
 
-    captured = capsys.readouterr()
-    assert "Hello world" in captured.out
+    assert "Hello world" in additional_info
 
 
 def test_individual_action_flag(authenticated_responses, backend):

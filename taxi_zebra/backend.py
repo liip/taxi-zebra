@@ -12,7 +12,7 @@ from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
-from .ui import prompt_role, show_response_messages
+from .ui import prompt_role, format_response_messages
 from .utils import get_role_id_from_alias, to_zebra_params
 
 
@@ -118,18 +118,7 @@ class ZebraBackend(BaseBackend):
             'description': entry.description,
         }, **kwargs)
 
-        response = self.zebra_request('post', post_url, data=to_zebra_params(parameters))
-
-        try:
-            response_json = response.json()
-        except ValueError:
-            raise PushEntryFailed(
-                "Got a non-JSON response when trying to push timesheet"
-            )
-
-        show_response_messages(response_json)
-
-        return response
+        return self.zebra_request('post', post_url, data=to_zebra_params(parameters))
 
     @needs_authentication
     def push_entry(self, date, entry):
@@ -168,7 +157,10 @@ class ZebraBackend(BaseBackend):
             error = response_json.get('error', "Unknown error")
             raise PushEntryFailed(error)
 
-        return "individual action" if not selected_role else "as {}".format(selected_role.full_name)
+        additional_info = "individual action" if not selected_role else "as {}".format(selected_role.full_name)
+        messages = format_response_messages(response_json)
+
+        return ". ".join([additional_info] + messages)
 
     @needs_authentication
     def get_projects(self):
