@@ -201,8 +201,7 @@ class ZebraBackend(BaseBackend):
                 setattr(p, date_attr, date)
 
             for activity in project['activities']:
-                a = Activity(int(activity['id']), activity['name'],
-                             activity['rate'])
+                a = Activity(int(activity['id']), activity['name'])
                 p.add_activity(a)
 
                 if activity['alias']:
