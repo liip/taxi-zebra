@@ -178,8 +178,8 @@ class ZebraBackend(BaseBackend):
         date_attrs = ('start_date', 'end_date')
 
         for project in projects['data']:
-            team = int(project['circle_id']) if project['circle_id'] else None
-            p = Project(int(project['id']), project['name'],
+            team = str(project['circle_id']) if project['circle_id'] else None
+            p = Project(project['id'], project['name'],
                         Project.STATUS_ACTIVE, project['description'],
                         project['budget'], team=team)
 
@@ -193,7 +193,7 @@ class ZebraBackend(BaseBackend):
                 setattr(p, date_attr, date)
 
             for activity in project['activities']:
-                a = Activity(int(activity['id']), activity['name'])
+                a = Activity(activity['id'], activity['name'])
                 p.add_activity(a)
 
                 if activity['alias']:
@@ -217,16 +217,16 @@ class ZebraBackend(BaseBackend):
         def zebra_role_to_role(id_, role):
             if isinstance(role, dict):
                 return Role(
-                    id=int(id_),
-                    parent_id=int(role['parent_id']) if role['parent_id'] else None,
+                    id=str(id_),
+                    parent_id=str(role['parent_id']) if role['parent_id'] else None,
                     full_name=role['full_name']
                 )
             else:
-                return Role(id=int(id_), parent_id=None, full_name=role)
+                return Role(id=str(id_), parent_id=None, full_name=role)
 
         user_info = self.get_user_info()
         roles = {
-            int(id_): zebra_role_to_role(id_, role)
+            str(id_): zebra_role_to_role(id_, role)
             for id_, role in user_info.get('roles', {}).items()
         }
 

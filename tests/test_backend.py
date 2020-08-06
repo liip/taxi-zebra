@@ -72,7 +72,7 @@ def authenticated_responses(mocked_responses):
 def test_role_is_prompted_when_needed(authenticated_responses, backend):
     success_response = {"success": True}
     fail_response = {"errorCode": "role_needed"}
-    role = Role(id=2, parent_id=1, full_name="Role")
+    role = Role(id="2", parent_id="1", full_name="Role")
 
     authenticated_responses.add(
         responses.POST, urls["timesheets"], body=json.dumps(fail_response),
@@ -120,7 +120,7 @@ def test_role_is_not_prompted_when_alias_has_role(authenticated_responses,
         status=200, content_type="application/json"
     )
     entry = Entry(alias="alias2", duration=1, description="")
-    aliases_database["alias2"] = Mapping(mapping=(1, 1, 2), backend="local")
+    aliases_database["alias2"] = Mapping(mapping=("1", "1", "2"), backend="local")
 
     with patch("taxi_zebra.backend.prompt_role") as prompt_role:
         backend.push_entry(datetime.date.today(), entry)
