@@ -125,7 +125,7 @@ class ZebraBackend(BaseBackend):
         user_roles = self.get_user_roles()
         alias_role_id = get_role_id_from_alias(entry.alias)
 
-        response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != 0 else None)
+        response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != "0" else None)
         response_json = response.json()
 
         if not response:
