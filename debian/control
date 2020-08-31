@@ -14,6 +14,7 @@ Standards-Version: 4.5.0
 Homepage: https://github.com/sephii/taxi-zebra
 Vcs-Git: https://github.com/sephii/taxi-zebra.git
 Vcs-Browser: https://github.com/sephii/taxi-zebra
+Rules-Requires-Root: no
 
 Package: taxi-backend-zebra
 Architecture: all
