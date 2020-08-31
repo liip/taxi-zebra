@@ -25,3 +25,21 @@ your Zebra profile, then use the token as your username, without any password::
 
     [backends]
     my_zebra_backend = zebra://token@zebra.example.com
+
+Contributing
+------------
+
+To setup a development environment, create a virtual environment and run the
+following command in it::
+
+    pip install -e .
+
+To use a specific version of Taxi, eg. if you need to also make changes to Taxi,
+install it in the virtual environment in editable mode::
+
+    pip install -e /path/to/taxi
+
+To run the tests::
+
+    pip install -r requirements_test.txt
+    pytest

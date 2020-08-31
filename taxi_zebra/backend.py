@@ -12,7 +12,7 @@ from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
-from .ui import prompt_role, show_response_messages
+from .ui import prompt_role, format_response_messages
 from .utils import get_role_id_from_alias, to_zebra_params
 
 
@@ -118,18 +118,7 @@ class ZebraBackend(BaseBackend):
             'description': entry.description,
         }, **kwargs)
 
-        response = self.zebra_request('post', post_url, data=to_zebra_params(parameters))
-
-        try:
-            response_json = response.json()
-        except ValueError:
-            raise PushEntryFailed(
-                "Got a non-JSON response when trying to push timesheet"
-            )
-
-        show_response_messages(response_json)
-
-        return response
+        return self.zebra_request('post', post_url, data=to_zebra_params(parameters))
 
     @needs_authentication
     def push_entry(self, date, entry):
@@ -153,7 +142,7 @@ class ZebraBackend(BaseBackend):
                     prompt, self.context['view'].get_entry_status(entry)
                 ), fg='yellow')
 
-                selected_role = prompt_role(entry, user_roles.values(), self.context)
+                selected_role = prompt_role(entry, list(user_roles.values()), self.context)
                 selected_role_id = selected_role.id if selected_role else None
 
                 response = self._push_entry(
@@ -168,7 +157,10 @@ class ZebraBackend(BaseBackend):
             error = response_json.get('error', "Unknown error")
             raise PushEntryFailed(error)
 
-        return "individual action" if not selected_role else "as {}".format(selected_role.full_name)
+        additional_info = "individual action" if not selected_role else "as {}".format(selected_role.full_name)
+        messages = format_response_messages(response_json)
+
+        return ". ".join([additional_info] + messages)
 
     @needs_authentication
     def get_projects(self):
@@ -186,8 +178,8 @@ class ZebraBackend(BaseBackend):
         date_attrs = ('start_date', 'end_date')
 
         for project in projects['data']:
-            team = int(project['circle_id']) if project['circle_id'] else None
-            p = Project(int(project['id']), project['name'],
+            team = str(project['circle_id']) if project['circle_id'] else None
+            p = Project(project['id'], project['name'],
                         Project.STATUS_ACTIVE, project['description'],
                         project['budget'], team=team)
 
@@ -201,8 +193,7 @@ class ZebraBackend(BaseBackend):
                 setattr(p, date_attr, date)
 
             for activity in project['activities']:
-                a = Activity(int(activity['id']), activity['name'],
-                             activity['rate'])
+                a = Activity(activity['id'], activity['name'])
                 p.add_activity(a)
 
                 if activity['alias']:
@@ -226,16 +217,16 @@ class ZebraBackend(BaseBackend):
         def zebra_role_to_role(id_, role):
             if isinstance(role, dict):
                 return Role(
-                    id=int(id_),
-                    parent_id=int(role['parent_id']) if role['parent_id'] else None,
+                    id=str(id_),
+                    parent_id=str(role['parent_id']) if role['parent_id'] else None,
                     full_name=role['full_name']
                 )
             else:
-                return Role(id=int(id_), parent_id=None, full_name=role)
+                return Role(id=str(id_), parent_id=None, full_name=role)
 
         user_info = self.get_user_info()
         roles = {
-            int(id_): zebra_role_to_role(id_, role)
+            str(id_): zebra_role_to_role(id_, role)
             for id_, role in user_info.get('roles', {}).items()
         }
 
