@@ -3,7 +3,7 @@ Section: comm
 Priority: optional
 Maintainer: Didier Raboud <didier.raboud@liip.ch>
 Build-Depends: bash-completion,
-               debhelper-compat (= 12),
+               debhelper-compat (= 13),
                dh-python,
                python3,
                python3-freezegun,
