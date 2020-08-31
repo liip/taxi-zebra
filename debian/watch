@@ -1,0 +1,2 @@
+version=4
+https://pypi.debian.net/taxi_zebra/taxi_zebra-(.+)\.(?:zip|tgz|tbz|txz|(?:tar\.(?:gz|bz2|xz)))
