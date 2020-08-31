@@ -1,8 +1,9 @@
-taxi-zebra (2.2.0-1) UNRELEASED; urgency=medium
+taxi-zebra (2.2.0-1) unstable-ci; urgency=medium
 
-  * Update to new upstream version 2.2.0.
+  * 2.2.0 release
+  * Packaging cleanup
 
- -- Didier 'OdyX' Raboud <didier.raboud@liip.ch>  Mon, 31 Aug 2020 14:38:52 +0200
+ -- Didier Raboud (Liip) <didier.raboud@liip.ch>  Mon, 31 Aug 2020 14:47:42 +0200
 
 taxi-zebra (2.0.3-1~2020010600) unstable-ci; urgency=medium
 
