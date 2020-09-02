@@ -128,7 +128,7 @@ def prompt_role(entry, roles, context):
     except CancelInput:
         raise PushEntryFailed("Skipped")
 
-    if role and get_role_id_from_alias(entry.alias) != 0:
+    if role and get_role_id_from_alias(entry.alias) != "0":
         click.echo("You have selected the role {}".format(click.style(role.full_name, fg='yellow')))
         prompt_kwargs = {
             'prompt_suffix': ' ',
@@ -154,7 +154,7 @@ def prompt_role(entry, roles, context):
         if create_alias == 'y':
             update_alias_mapping(
                 context['settings'], entry.alias,
-                aliases_database[entry.alias].mapping[:2] + (role.id,)
+                aliases_database[entry.alias].mapping[:2] + (str(role.id),)
             )
 
             click.secho("Alias {} now points to the role {}".format(
@@ -163,7 +163,7 @@ def prompt_role(entry, roles, context):
         elif create_alias == 'N':
             update_alias_mapping(
                 context['settings'], entry.alias,
-                aliases_database[entry.alias].mapping[:2] + (0,)
+                aliases_database[entry.alias].mapping[:2] + ("0",)
             )
 
     return role
