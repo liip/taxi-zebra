@@ -71,7 +71,8 @@ def balance(ctx):
     total_duration_week = sum([float(timesheet['time']) for timesheet in timesheets_week])
     total_duration_today = sum([float(timesheet['time']) for timesheet in timesheets_today])
 
-    vacation = hours_to_days(user_info['vacation']['difference'])
+    vacation_info = user_info['vacation']
+    vacation = hours_to_days(vacation_info['total_available'] - vacation_info['planned'] - vacation_info['used'])
     vacation_balance = '{} days, {:.2f} hours'.format(*vacation)
 
     hours_balance = user_info['hours']['hours']['balance']
