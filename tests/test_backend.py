@@ -30,6 +30,9 @@ def aliases_database():
     taxi.aliases.aliases_database["alias1"] = Mapping(
         mapping=("1", "1"), backend="local"
     )
+    taxi.aliases.aliases_database["alias_do_not_ask_for_role"] = Mapping(
+        mapping=("1", "1", "0"), backend="local"
+    )
 
     yield taxi.aliases.aliases_database
 
@@ -144,7 +147,8 @@ def test_push_returns_backend_messages(authenticated_responses, backend):
     assert "Hello world" in additional_info
 
 
-def test_individual_action_flag(authenticated_responses, backend):
+@pytest.mark.parametrize("alias", ["alias1", "alias_do_not_ask_for_role"])
+def test_individual_action_flag(authenticated_responses, backend, alias):
     success_response = {"success": True}
     fail_response = {"errorCode": "role_needed"}
 
@@ -156,7 +160,7 @@ def test_individual_action_flag(authenticated_responses, backend):
         responses.POST, urls["timesheets"], body=json.dumps(success_response),
         status=200, content_type="application/json"
     )
-    entry = Entry(alias="alias1", duration=1, description="")
+    entry = Entry(alias=alias, duration=1, description="")
 
     with patch("taxi_zebra.backend.prompt_role") as prompt_role:
         prompt_role.return_value = None
@@ -164,4 +168,20 @@ def test_individual_action_flag(authenticated_responses, backend):
 
     push_call = authenticated_responses.calls[-1]
     assert "individual_action=true" in push_call.request.body
+    assert "role_id" not in push_call.request.body
+
+
+def test_push_alias_without_required_role_works(authenticated_responses, backend):
+    authenticated_responses.add(
+        responses.POST,
+        urls["timesheets"],
+        body=json.dumps({"success": True}),
+        status=200,
+        content_type="application/json",
+    )
+    entry = Entry(alias="alias_do_not_ask_for_role", duration=1, description="")
+    backend.push_entry(datetime.date.today(), entry)
+
+    push_call = authenticated_responses.calls[-1]
+    assert "individual_action" not in push_call.request.body
     assert "role_id" not in push_call.request.body

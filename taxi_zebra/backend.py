@@ -12,6 +12,7 @@ from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
+from .roles import INDIVIDUAL_ACTION_ID, NEVER_SAVE_ROLE_ID
 from .ui import prompt_role, format_response_messages
 from .utils import get_role_id_from_alias, to_zebra_params
 
@@ -108,12 +109,16 @@ class ZebraBackend(BaseBackend):
         post_url = self.get_api_url('/timesheets/')
 
         mapping = aliases_database[entry.alias]
+        if role_id == INDIVIDUAL_ACTION_ID:
+            kwargs['individual_action'] = True
+        elif role_id:
+            kwargs['individual_action'] = False
+            kwargs['role_id'] = role_id
 
         parameters = dict({
             'time': entry.hours,
             'project_id': mapping.mapping[0],
             'activity_id': mapping.mapping[1],
-            'role_id': role_id,
             'date': date.strftime('%Y-%m-%d'),
             'description': entry.description,
         }, **kwargs)
@@ -125,7 +130,10 @@ class ZebraBackend(BaseBackend):
         user_roles = self.get_user_roles()
         alias_role_id = get_role_id_from_alias(entry.alias)
 
-        response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != "0" else None)
+        if alias_role_id == NEVER_SAVE_ROLE_ID:
+            alias_role_id = None
+
+        response = self._push_entry(date, entry, role_id=alias_role_id)
         response_json = response.json()
 
         if not response:
@@ -143,15 +151,12 @@ class ZebraBackend(BaseBackend):
                 ), fg='yellow')
 
                 selected_role = prompt_role(entry, list(user_roles.values()), self.context)
-                selected_role_id = selected_role.id if selected_role else None
+                selected_role_id = selected_role.id if selected_role else INDIVIDUAL_ACTION_ID
 
-                response = self._push_entry(
-                    date, entry, role_id=selected_role_id,
-                    individual_action=selected_role_id is None
-                )
+                response = self._push_entry(date, entry, role_id=selected_role_id)
                 response_json = response.json()
         else:
-            selected_role = user_roles[alias_role_id] if alias_role_id else None
+            selected_role = user_roles.get(alias_role_id)
 
         if not response_json['success']:
             error = response_json.get('error', "Unknown error")

@@ -6,6 +6,7 @@ import click
 from taxi.aliases import aliases_database
 from taxi.backends import PushEntryFailed
 
+from .roles import NEVER_SAVE_ROLE_ID
 from .utils import get_role_id_from_alias, update_alias_mapping
 
 
@@ -128,7 +129,8 @@ def prompt_role(entry, roles, context):
     except CancelInput:
         raise PushEntryFailed("Skipped")
 
-    if role and get_role_id_from_alias(entry.alias) != "0":
+    # Do not ask to save role association if user has requested to never be asked for it
+    if role and get_role_id_from_alias(entry.alias) != NEVER_SAVE_ROLE_ID:
         click.echo("You have selected the role {}".format(click.style(role.full_name, fg='yellow')))
         prompt_kwargs = {
             'prompt_suffix': ' ',
@@ -163,7 +165,7 @@ def prompt_role(entry, roles, context):
         elif create_alias == 'N':
             update_alias_mapping(
                 context['settings'], entry.alias,
-                aliases_database[entry.alias].mapping[:2] + ("0",)
+                aliases_database[entry.alias].mapping[:2] + (NEVER_SAVE_ROLE_ID,)
             )
 
     return role
