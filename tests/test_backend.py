@@ -225,3 +225,18 @@ def test_no_default_role_proposed_when_alias_never_used(authenticated_responses,
             backend.push_entry(datetime.date.today(), entry)
 
     assert "Select a role:" in capsys.readouterr().out
+
+
+def test_default_role_updates_between_entries(authenticated_responses, backend, capsys):
+    entries = [
+        Entry(alias="alias1", duration=1, description="foo"),
+        Entry(alias="alias1", duration=1, description="bar")
+    ]
+
+    with patch("click.termui.visible_prompt_func") as patched_input:
+        patched_input.side_effect = ["1", "n", "", "n"]
+        for entry in entries:
+            require_role(authenticated_responses)
+            backend.push_entry(datetime.date.today(), entry)
+
+    assert "Select a role (leave empty for Role 2):" in capsys.readouterr().out

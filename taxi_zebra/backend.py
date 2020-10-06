@@ -169,6 +169,9 @@ class ZebraBackend(BaseBackend):
             error = response_json.get('error', "Unknown error")
             raise PushEntryFailed(error)
 
+        if selected_role:
+            self.update_latest_role_for_alias(entry.alias, selected_role.id)
+
         additional_info = "individual action" if not selected_role else "as {}".format(selected_role.full_name)
         messages = format_response_messages(response_json)
 
@@ -286,3 +289,14 @@ class ZebraBackend(BaseBackend):
         self._activities_roles = {str(key): str(value) for key, value in activities_roles.items()}
 
         return self._activities_roles
+
+    def update_latest_role_for_alias(self, alias, role_id):
+        try:
+            alias_id = get_alias_id(alias)
+        except KeyError:
+            return
+
+        if not hasattr(self, '_activities_roles'):
+            self._activities_roles = {}
+
+        self._activities_roles[str(alias_id)] = str(role_id)
