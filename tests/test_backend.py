@@ -62,6 +62,7 @@ def authenticated_responses(mocked_responses):
         "data": {
             "roles": {
                 2: {"id": 2, "parent_id": 1, "full_name": "Role"},
+                3: {"id": 3, "parent_id": 1, "full_name": "Role 2"},
             }
         }
     }
@@ -114,7 +115,7 @@ def test_role_is_prompted_when_needed(authenticated_responses, backend):
 
         prompt_role.assert_called_once_with(
             entry,
-            [role],
+            [role, Role(id="3", parent_id="1", full_name="Role 2")],
             {"view": backend.context["view"], "projects_db": backend.context["projects_db"]},
             default_role=Role(id="2", parent_id="1", full_name="Role")
         )
@@ -199,6 +200,22 @@ def test_latest_role_is_not_proposed_when_not_available(authenticated_responses,
     authenticated_responses.replace(responses.GET,
                                     urls["latestActivityRoles"],
                                     body=json.dumps({"success": True, "data": {1: "999"}}),
+                                    status=200, content_type="application/json")
+    entry = Entry(alias="alias1", duration=1, description="")
+
+    with patch("click.termui.visible_prompt_func") as patched_input:
+        patched_input.return_value = "c"
+        with pytest.raises(PushEntryFailed):
+            backend.push_entry(datetime.date.today(), entry)
+
+    assert "Select a role:" in capsys.readouterr().out
+
+
+def test_no_default_role_proposed_when_alias_never_used(authenticated_responses, backend, capsys):
+    require_role(authenticated_responses)
+    authenticated_responses.replace(responses.GET,
+                                    urls["latestActivityRoles"],
+                                    body=json.dumps({"success": True, "data": {}}),
                                     status=200, content_type="application/json")
     entry = Entry(alias="alias1", duration=1, description="")
 

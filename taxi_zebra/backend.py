@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 Role = namedtuple('Role', ['id', 'parent_id', 'full_name'])
 
 
+def get_alias_id(alias):
+    return aliases_database[alias].mapping[1]
+
+
 def needs_authentication(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -170,14 +174,6 @@ class ZebraBackend(BaseBackend):
 
         return ". ".join([additional_info] + messages)
 
-    def get_latest_role_for_alias(self, alias):
-        try:
-            mapping = aliases_database[alias]
-        except KeyError:
-            return None
-
-        return self.get_activities_roles()[mapping.mapping[1]]
-
     @needs_authentication
     def get_projects(self):
         projects_url = self.get_api_url('/projects/')
@@ -260,6 +256,14 @@ class ZebraBackend(BaseBackend):
         }
 
         return self.zebra_request('get', timesheet_url, params=request_params).json()['data']['list']
+
+    def get_latest_role_for_alias(self, alias):
+        try:
+            alias_id = get_alias_id(alias)
+        except KeyError:
+            return None
+
+        return self.get_activities_roles().get(alias_id)
 
     def get_activities_roles(self):
         if getattr(self, '_activities_roles', None) is not None:
