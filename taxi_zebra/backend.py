@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import namedtuple
 from datetime import datetime
@@ -150,7 +151,9 @@ class ZebraBackend(BaseBackend):
                     prompt, self.context['view'].get_entry_status(entry)
                 ), fg='yellow')
 
-                selected_role = prompt_role(entry, list(user_roles.values()), self.context)
+                default_role_id = self.get_latest_role_for_alias(entry.alias)
+                default_role = user_roles.get(default_role_id) if default_role_id else None
+                selected_role = prompt_role(entry, list(user_roles.values()), self.context, default_role=default_role)
                 selected_role_id = selected_role.id if selected_role else INDIVIDUAL_ACTION_ID
 
                 response = self._push_entry(date, entry, role_id=selected_role_id)
@@ -166,6 +169,14 @@ class ZebraBackend(BaseBackend):
         messages = format_response_messages(response_json)
 
         return ". ".join([additional_info] + messages)
+
+    def get_latest_role_for_alias(self, alias):
+        try:
+            mapping = aliases_database[alias]
+        except KeyError:
+            return None
+
+        return self.get_activities_roles()[mapping.mapping[1]]
 
     @needs_authentication
     def get_projects(self):
@@ -249,3 +260,25 @@ class ZebraBackend(BaseBackend):
         }
 
         return self.zebra_request('get', timesheet_url, params=request_params).json()['data']['list']
+
+    def get_activities_roles(self):
+        if getattr(self, '_activities_roles', None) is not None:
+            return self._activities_roles
+
+        response = self.zebra_request('get', self.get_api_url('/latestActivityRoles'))
+        if not response:
+            logger.warning("Could not fetch latest activity roles, got response %s", response)
+            return {}
+
+        try:
+            activities_roles = response.json()['data']
+        except json.JsonDecodeError as e:
+            logger.warning("Could not decode latestActivityRoles JSON response, got %s", e)
+            return {}
+        except KeyError:
+            logger.warning("No 'data' in latestActivityRole endpoint response")
+            return {}
+
+        self._activities_roles = {str(key): str(value) for key, value in activities_roles.items()}
+
+        return self._activities_roles

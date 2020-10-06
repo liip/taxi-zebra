@@ -42,6 +42,12 @@ def prompt_options(message, options, default=None):
     enumerated_options = list(enumerate(options))
     options_by_key = [(get_option_key(i, option), option) for i, option in enumerated_options]
     options_by_key_dict = dict(options_by_key)
+    try:
+        default_option_id = next(
+            key for key, option in options_by_key if option.value == default.value
+        ) if default else None
+    except StopIteration:
+        default_option_id = None
 
     click.secho(message + "\n", bold=True)
 
@@ -57,29 +63,30 @@ def prompt_options(message, options, default=None):
             click.echo(option.label)
 
     click.echo()
+    prompt_message_default = " [{}]".format(default.label) if default else ""
+    prompt_message = "Select a role{}".format(prompt_message_default)
 
     while True:
-        try:
-            option_id = click.prompt("Select a role").lstrip('[').rstrip(']')
-        except click.exceptions.Abort:
-            # Put a newline after the ^C character so that the failed entry is displayed on its own line
-            click.echo()
-            return default
-        else:
-            try:
-                option_id = int(option_id)
-            except ValueError:
-                pass
+        option_id = click.prompt(
+            prompt_message,
+            default=str(default_option_id) if default_option_id is not None else None,
+            show_default=False
+        ).lstrip('[').rstrip(']')
 
-            try:
-                return options_by_key_dict[option_id][0]
-            except KeyError:
-                click.secho("`{}` is not a a valid option. Please try again.".format(option_id), fg='red')
+        try:
+            option_id = int(option_id)
+        except ValueError:
+            pass
+
+        try:
+            return options_by_key_dict[option_id][0]
+        except KeyError:
+            click.secho("`{}` is not a a valid option. Please try again.".format(option_id), fg='red')
 
     return option_id
 
 
-def input_role(roles, project_team):
+def input_role(roles, project_team, default_role=None):
     """
     Show a list of roles to the user and ask them to select one. Return the
     selected `Role`, or `None` if individual action was chosen.
@@ -103,11 +110,17 @@ def input_role(roles, project_team):
         Option(value=cancel, label="Cancel, skip this entry for now", key=cancel),
     ]
 
-    selected_role = prompt_options(
-        message='In which role do you want to push this entry?', options=options, default=cancel
-    )
+    default_option = role_to_option(default_role) if default_role else None
+
+    try:
+        selected_role = prompt_options(
+            message='In which role do you want to push this entry?', options=options, default=default_option
+        )
+    except click.exceptions.Abort:
+        selected_role = cancel
 
     if selected_role == cancel:
+        click.echo()
         raise CancelInput()
     elif selected_role == individual_action:
         selected_role = None
@@ -115,7 +128,7 @@ def input_role(roles, project_team):
     return selected_role
 
 
-def prompt_role(entry, roles, context):
+def prompt_role(entry, roles, context, default_role=None):
     """
     Ask the user to choose a role in `roles` for the given `entry` and return
     it.
@@ -125,7 +138,7 @@ def prompt_role(entry, roles, context):
     project_team = project.team if project else None
 
     try:
-        role = input_role(roles, project_team)
+        role = input_role(roles, project_team, default_role=default_role)
     except CancelInput:
         raise PushEntryFailed("Skipped")
 
@@ -140,7 +153,7 @@ def prompt_role(entry, roles, context):
 
         # `show_choices` has been added in click 7.0. Support for click < 7 is needed for distributions
         # that only provide click 6 in their package managers
-        if 'show_choices' in inspect.getargspec(click.prompt).args:
+        if 'show_choices' in inspect.signature(click.prompt).parameters:
             prompt_kwargs['show_choices'] = False
 
         try:
