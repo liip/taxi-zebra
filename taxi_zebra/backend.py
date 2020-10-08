@@ -1,3 +1,4 @@
+import json
 import logging
 from collections import namedtuple
 from datetime import datetime
@@ -12,6 +13,7 @@ from taxi.backends import BaseBackend, PushEntryFailed
 from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
+from .roles import INDIVIDUAL_ACTION_ID, NEVER_SAVE_ROLE_ID
 from .ui import prompt_role, format_response_messages
 from .utils import get_role_id_from_alias, to_zebra_params
 
@@ -20,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 Role = namedtuple('Role', ['id', 'parent_id', 'full_name'])
+
+
+def get_alias_id(alias):
+    return aliases_database[alias].mapping[1]
 
 
 def needs_authentication(f):
@@ -108,12 +114,16 @@ class ZebraBackend(BaseBackend):
         post_url = self.get_api_url('/timesheets/')
 
         mapping = aliases_database[entry.alias]
+        if role_id == INDIVIDUAL_ACTION_ID:
+            kwargs['individual_action'] = True
+        elif role_id:
+            kwargs['individual_action'] = False
+            kwargs['role_id'] = role_id
 
         parameters = dict({
             'time': entry.hours,
             'project_id': mapping.mapping[0],
             'activity_id': mapping.mapping[1],
-            'role_id': role_id,
             'date': date.strftime('%Y-%m-%d'),
             'description': entry.description,
         }, **kwargs)
@@ -125,7 +135,10 @@ class ZebraBackend(BaseBackend):
         user_roles = self.get_user_roles()
         alias_role_id = get_role_id_from_alias(entry.alias)
 
-        response = self._push_entry(date, entry, role_id=alias_role_id if alias_role_id != "0" else None)
+        if alias_role_id == NEVER_SAVE_ROLE_ID:
+            alias_role_id = None
+
+        response = self._push_entry(date, entry, role_id=alias_role_id)
         response_json = response.json()
 
         if not response:
@@ -142,20 +155,22 @@ class ZebraBackend(BaseBackend):
                     prompt, self.context['view'].get_entry_status(entry)
                 ), fg='yellow')
 
-                selected_role = prompt_role(entry, list(user_roles.values()), self.context)
-                selected_role_id = selected_role.id if selected_role else None
+                default_role_id = self.get_latest_role_for_alias(entry.alias)
+                default_role = user_roles.get(default_role_id) if default_role_id else None
+                selected_role = prompt_role(entry, list(user_roles.values()), self.context, default_role=default_role)
+                selected_role_id = selected_role.id if selected_role else INDIVIDUAL_ACTION_ID
 
-                response = self._push_entry(
-                    date, entry, role_id=selected_role_id,
-                    individual_action=selected_role_id is None
-                )
+                response = self._push_entry(date, entry, role_id=selected_role_id)
                 response_json = response.json()
         else:
-            selected_role = user_roles[alias_role_id] if alias_role_id else None
+            selected_role = user_roles.get(alias_role_id)
 
         if not response_json['success']:
             error = response_json.get('error', "Unknown error")
             raise PushEntryFailed(error)
+
+        if selected_role:
+            self.update_latest_role_for_alias(entry.alias, selected_role.id)
 
         additional_info = "individual action" if not selected_role else "as {}".format(selected_role.full_name)
         messages = format_response_messages(response_json)
@@ -244,3 +259,44 @@ class ZebraBackend(BaseBackend):
         }
 
         return self.zebra_request('get', timesheet_url, params=request_params).json()['data']['list']
+
+    def get_latest_role_for_alias(self, alias):
+        try:
+            alias_id = get_alias_id(alias)
+        except KeyError:
+            return None
+
+        return self.get_activities_roles().get(alias_id)
+
+    def get_activities_roles(self):
+        if getattr(self, '_activities_roles', None) is not None:
+            return self._activities_roles
+
+        response = self.zebra_request('get', self.get_api_url('/latestActivityRoles'))
+        if not response:
+            logger.warning("Could not fetch latest activity roles, got response %s", response)
+            return {}
+
+        try:
+            activities_roles = response.json()['data']
+        except json.JsonDecodeError as e:
+            logger.warning("Could not decode latestActivityRoles JSON response, got %s", e)
+            return {}
+        except KeyError:
+            logger.warning("No 'data' in latestActivityRole endpoint response")
+            return {}
+
+        self._activities_roles = {str(key): str(value) for key, value in activities_roles.items()}
+
+        return self._activities_roles
+
+    def update_latest_role_for_alias(self, alias, role_id):
+        try:
+            alias_id = get_alias_id(alias)
+        except KeyError:
+            return
+
+        if not hasattr(self, '_activities_roles'):
+            self._activities_roles = {}
+
+        self._activities_roles[str(alias_id)] = str(role_id)
