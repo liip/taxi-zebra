@@ -63,7 +63,7 @@ def prompt_options(message, options, default=None):
             click.echo(option.label)
 
     click.echo()
-    prompt_message_default = " (leave empty for {})".format(default.label) if default else ""
+    prompt_message_default = " (leave empty for {})".format(click.style(default.label, bold=True)) if default else ""
     prompt_message = "Select a role{}".format(prompt_message_default)
 
     while True:
