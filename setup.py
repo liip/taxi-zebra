@@ -19,16 +19,15 @@ setup(
     url='https://github.com/sephii/taxi-zebra',
     install_requires=install_requires,
     license='wtfpl',
-    python_requires=">=3.5",
+    python_requires=">=3.7",
     entry_points={
         'taxi.backends': 'zebra = taxi_zebra.backend:ZebraBackend',
         'taxi.commands': ['zebra = taxi_zebra.commands'],
     },
     classifiers=[
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ]
 )
