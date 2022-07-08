@@ -43,3 +43,9 @@ To run the tests::
 
     pip install -r requirements_test.txt
     pytest
+
+
+Uploading a new release
+-----------------------
+
+To upload a new release just run the ``release.sh`` file which will commit and push a tag. A Github action will then upload the new release.
