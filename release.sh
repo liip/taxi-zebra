@@ -4,7 +4,7 @@ release() {
 	set -e
 	echo "__version__ = '$1'" >taxi_zebra/__init__.py
 	git commit -m "Bump version number to $1" taxi_zebra/__init__.py
-	git tag -m "Release $1" -s $1
+	git tag -m "Release $1" $1
 	git push origin $1
 }
 
