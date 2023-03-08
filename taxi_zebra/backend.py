@@ -192,7 +192,7 @@ class ZebraBackend(BaseBackend):
         projects_list = []
         date_attrs = ('start_date', 'end_date')
 
-        for project in projects['data']:
+        for project in projects['data']['list'].values():
             team = str(project['circle_id']) if project['circle_id'] else None
             p = Project(project['id'], project['name'],
                         Project.STATUS_ACTIVE, project['description'],
