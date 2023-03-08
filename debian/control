@@ -11,7 +11,7 @@ Build-Depends: bash-completion,
                python3-responses,
                python3-setuptools,
                python3-six (>= 1.9.0)
-Standards-Version: 4.5.0
+Standards-Version: 4.6.2
 Homepage: https://github.com/sephii/taxi-zebra
 Vcs-Git: https://github.com/sephii/taxi-zebra.git
 Vcs-Browser: https://github.com/sephii/taxi-zebra
