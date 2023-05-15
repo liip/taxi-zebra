@@ -14,6 +14,7 @@ setup(
     version=__version__,
     packages=find_packages(),
     description='Zebra backend for Taxi',
+    long_description='Zebra backend for Taxi',
     author='Sylvain Fankhauser',
     author_email='sylvain.fankhauser@liip.ch',
     url='https://github.com/liip/taxi-zebra',
