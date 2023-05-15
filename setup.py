@@ -16,7 +16,7 @@ setup(
     description='Zebra backend for Taxi',
     author='Sylvain Fankhauser',
     author_email='sylvain.fankhauser@liip.ch',
-    url='https://github.com/sephii/taxi-zebra',
+    url='https://github.com/liip/taxi-zebra',
     install_requires=install_requires,
     license='wtfpl',
     python_requires=">=3.7",
@@ -29,5 +29,6 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ]
 )
