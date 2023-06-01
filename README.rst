@@ -1,7 +1,7 @@
 Zebra backend for Taxi
 ======================
 
-This is the Zebra backend for `Taxi <https://github.com/sephii/taxi>`_. It
+This is the Zebra backend for `Taxi <https://github.com/liip/taxi>`_. It
 exposes the ``zebra`` protocol to push entries and fetch projects and
 activities from Zebra.
 
