@@ -4,22 +4,22 @@ from unittest.mock import patch
 
 import pytest
 import responses
+
 import taxi.aliases
 from taxi.aliases import Mapping
 from taxi.backends import PushEntryFailed
+from taxi.exceptions import TaxiException
 from taxi.projects import ProjectsDb
 from taxi.timesheet.entry import Entry
 from taxi.ui.tty import TtyUi
-
 from taxi_zebra.backend import Role, ZebraBackend
 
 hostname = "zebralocal"
-username = "john.doe"
+token = "a-long-hexadecimal-token"
 base_endpoint = "https://{}:443".format(hostname)
 urls = {
     name: base_endpoint + url
     for name, url in {
-        "login": "/login/user/{}.json".format(username),
         "user_info": "/api/v2/users/me",
         "timesheets": "/api/v2/timesheets/",
         "latestActivityRoles": "/api/v2/latestActivityRoles",
@@ -50,8 +50,8 @@ def mocked_responses():
 def backend(aliases_database, tmp_path):
     projects_db_path = str(tmp_path / "projects.json")
     yield ZebraBackend(
-        username=username,
-        password="foobar",
+        username=token,
+        password="",
         hostname=hostname,
         port=443,
         path="",
@@ -73,13 +73,6 @@ def authenticated_responses(mocked_responses):
     }
     latest_activity_roles = {"success": True, "data": {"1": 2}}
 
-    mocked_responses.add(
-        responses.POST,
-        urls["login"],
-        body="{}",
-        status=200,
-        content_type="application/json",
-    )
     mocked_responses.add(
         responses.GET,
         urls["user_info"],
@@ -281,3 +274,16 @@ def test_default_role_updates_between_entries(authenticated_responses, backend, 
             backend.push_entry(datetime.date.today(), entry)
 
     assert "Select a role (leave empty for Role 2):" in capsys.readouterr().out
+
+
+def test_zebra_backend_doesnt_accept_password():
+    with pytest.raises(TaxiException):
+        ZebraBackend(
+            username="very-old-liiper",
+            password="has-an-imap-password",
+            hostname=hostname,
+            port=443,
+            path="",
+            options={},
+            context={},
+        )

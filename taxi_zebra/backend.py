@@ -3,10 +3,11 @@ import logging
 from collections import namedtuple
 from datetime import datetime
 from functools import wraps
+from urllib import parse
 
 import click
 import requests
-from urllib import parse
+
 from taxi import __version__ as taxi_version
 from taxi.aliases import aliases_database
 from taxi.backends import BaseBackend, PushEntryFailed
@@ -14,9 +15,8 @@ from taxi.exceptions import TaxiException
 from taxi.projects import Activity, Project
 
 from .roles import INDIVIDUAL_ACTION_ID, NEVER_SAVE_ROLE_ID
-from .ui import prompt_role, format_response_messages
+from .ui import format_response_messages, prompt_role
 from .utils import get_role_id_from_alias, to_zebra_params
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def get_alias_id(alias):
 def needs_authentication(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        args[0].authenticate()
+        args[0].authorize_session()
         return f(*args, **kwargs)
 
     return wrapper
@@ -41,6 +41,15 @@ class ZebraBackend(BaseBackend):
     def __init__(self, *args, **kwargs):
         super(ZebraBackend, self).__init__(*args, **kwargs)
 
+        if self.password:
+            raise TaxiException(
+                "Password was passed to ZebraBackend, only token is supported."
+            )
+        # To clarify the later code; unset username/password, set token.
+        self.token = self.username
+        del self.password
+        del self.username
+
         self.port = self.port if self.port else 443
 
         if not self.path.startswith("/"):
@@ -49,18 +58,12 @@ class ZebraBackend(BaseBackend):
         if not self.path.endswith("/"):
             self.path += "/"
 
-        self._authenticated = False
         self._session = requests.Session()
         self._session.headers.update({"user-agent": "Taxi {}".format(taxi_version)})
         self._user_info = None
 
     def get_api_url(self, url):
-        absolute_url = self.get_full_url("/api/v2{url}".format(url=url))
-
-        if not self.password:
-            absolute_url = self.append_token(absolute_url)
-
-        return absolute_url
+        return self.get_full_url("/api/v2{url}".format(url=url))
 
     def get_full_url(self, url):
         # Remove slash at the start of the string since self.path already ends
@@ -79,33 +82,13 @@ class ZebraBackend(BaseBackend):
 
         return response
 
-    def append_token(self, url):
-        split_url = list(parse.urlsplit(url))
+    def authorize_session(self):
+        """
+        Authenticate via Bearer token authorization
 
-        # Add the token parameter to the query string, then rebuild the URL
-        qs = parse.parse_qs(split_url[3])
-        qs["token"] = self.username
-        split_url[3] = parse.urlencode(qs, doseq=True)
-        url_with_token = parse.urlunsplit(split_url)
-
-        return url_with_token
-
-    def authenticate(self):
-        if self._authenticated or not self.password:
-            return
-
-        login_url = self.get_full_url("/login/user/%s.json" % self.username)
-        parameters_dict = {
-            "username": self.username,
-            "password": self.password,
-        }
-
-        try:
-            self.zebra_request("post", login_url, data=parameters_dict).json()
-        except ValueError:
-            raise TaxiException("Login failed, please check your credentials")
-
-        self._authenticated = True
+        Starting with Zebra 14.97, that's possible for clients, and will be effective in 2023/10
+        """
+        self._session.headers.update({"Authorization": "Bearer {}".format(self.token)})
 
     @needs_authentication
     def _push_entry(self, date, entry, role_id, *args, **kwargs):
