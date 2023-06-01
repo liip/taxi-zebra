@@ -21,7 +21,7 @@ from .utils import get_role_id_from_alias, to_zebra_params
 logger = logging.getLogger(__name__)
 
 
-Role = namedtuple('Role', ['id', 'parent_id', 'full_name'])
+Role = namedtuple("Role", ["id", "parent_id", "full_name"])
 
 
 def get_alias_id(alias):
@@ -43,21 +43,19 @@ class ZebraBackend(BaseBackend):
 
         self.port = self.port if self.port else 443
 
-        if not self.path.startswith('/'):
-            self.path = '/' + self.path
+        if not self.path.startswith("/"):
+            self.path = "/" + self.path
 
-        if not self.path.endswith('/'):
-            self.path += '/'
+        if not self.path.endswith("/"):
+            self.path += "/"
 
         self._authenticated = False
         self._session = requests.Session()
-        self._session.headers.update(
-            {'user-agent': 'Taxi {}'.format(taxi_version)}
-        )
+        self._session.headers.update({"user-agent": "Taxi {}".format(taxi_version)})
         self._user_info = None
 
     def get_api_url(self, url):
-        absolute_url = self.get_full_url('/api/v2{url}'.format(url=url))
+        absolute_url = self.get_full_url("/api/v2{url}".format(url=url))
 
         if not self.password:
             absolute_url = self.append_token(absolute_url)
@@ -67,9 +65,9 @@ class ZebraBackend(BaseBackend):
     def get_full_url(self, url):
         # Remove slash at the start of the string since self.path already ends
         # with a slash
-        url = url.lstrip('/')
+        url = url.lstrip("/")
 
-        return 'https://{host}:{port}{base_path}{url}'.format(
+        return "https://{host}:{port}{base_path}{url}".format(
             host=self.hostname, port=self.port, base_path=self.path, url=url
         )
 
@@ -86,7 +84,7 @@ class ZebraBackend(BaseBackend):
 
         # Add the token parameter to the query string, then rebuild the URL
         qs = parse.parse_qs(split_url[3])
-        qs['token'] = self.username
+        qs["token"] = self.username
         split_url[3] = parse.urlencode(qs, doseq=True)
         url_with_token = parse.urlunsplit(split_url)
 
@@ -96,14 +94,14 @@ class ZebraBackend(BaseBackend):
         if self._authenticated or not self.password:
             return
 
-        login_url = self.get_full_url('/login/user/%s.json' % self.username)
+        login_url = self.get_full_url("/login/user/%s.json" % self.username)
         parameters_dict = {
-            'username': self.username,
-            'password': self.password,
+            "username": self.username,
+            "password": self.password,
         }
 
         try:
-            self.zebra_request('post', login_url, data=parameters_dict).json()
+            self.zebra_request("post", login_url, data=parameters_dict).json()
         except ValueError:
             raise TaxiException("Login failed, please check your credentials")
 
@@ -111,24 +109,27 @@ class ZebraBackend(BaseBackend):
 
     @needs_authentication
     def _push_entry(self, date, entry, role_id, *args, **kwargs):
-        post_url = self.get_api_url('/timesheets/')
+        post_url = self.get_api_url("/timesheets/")
 
         mapping = aliases_database[entry.alias]
         if role_id == INDIVIDUAL_ACTION_ID:
-            kwargs['individual_action'] = True
+            kwargs["individual_action"] = True
         elif role_id:
-            kwargs['individual_action'] = False
-            kwargs['role_id'] = role_id
+            kwargs["individual_action"] = False
+            kwargs["role_id"] = role_id
 
-        parameters = dict({
-            'time': entry.hours,
-            'project_id': mapping.mapping[0],
-            'activity_id': mapping.mapping[1],
-            'date': date.strftime('%Y-%m-%d'),
-            'description': entry.description,
-        }, **kwargs)
+        parameters = dict(
+            {
+                "time": entry.hours,
+                "project_id": mapping.mapping[0],
+                "activity_id": mapping.mapping[1],
+                "date": date.strftime("%Y-%m-%d"),
+                "description": entry.description,
+            },
+            **kwargs
+        )
 
-        return self.zebra_request('post', post_url, data=to_zebra_params(parameters))
+        return self.zebra_request("post", post_url, data=to_zebra_params(parameters))
 
     @needs_authentication
     def push_entry(self, date, entry):
@@ -142,47 +143,63 @@ class ZebraBackend(BaseBackend):
         response_json = response.json()
 
         if not response:
-            error_code = response_json.get('errorCode')
-            if error_code in {'role_needed', 'role_invalid'}:
-                if error_code == 'role_needed':
+            error_code = response_json.get("errorCode")
+            if error_code in {"role_needed", "role_invalid"}:
+                if error_code == "role_needed":
                     prompt = "You're trying to push the following entry to an activity which doesn't have any associated role:"
-                elif error_code == 'role_invalid':
+                elif error_code == "role_invalid":
                     prompt = "You're trying to use a role you don't have (anymore):"
                 else:
                     prompt = "You can't use that role:"
 
-                click.secho("\n{}\n\n{}\n".format(
-                    prompt, self.context['view'].get_entry_status(entry)
-                ), fg='yellow')
+                click.secho(
+                    "\n{}\n\n{}\n".format(
+                        prompt, self.context["view"].get_entry_status(entry)
+                    ),
+                    fg="yellow",
+                )
 
                 default_role_id = self.get_latest_role_for_alias(entry.alias)
-                default_role = user_roles.get(default_role_id) if default_role_id else None
-                selected_role = prompt_role(entry, list(user_roles.values()), self.context, default_role=default_role)
-                selected_role_id = selected_role.id if selected_role else INDIVIDUAL_ACTION_ID
+                default_role = (
+                    user_roles.get(default_role_id) if default_role_id else None
+                )
+                selected_role = prompt_role(
+                    entry,
+                    list(user_roles.values()),
+                    self.context,
+                    default_role=default_role,
+                )
+                selected_role_id = (
+                    selected_role.id if selected_role else INDIVIDUAL_ACTION_ID
+                )
 
                 response = self._push_entry(date, entry, role_id=selected_role_id)
                 response_json = response.json()
         else:
             selected_role = user_roles.get(alias_role_id)
 
-        if not response_json['success']:
-            error = response_json.get('error', "Unknown error")
+        if not response_json["success"]:
+            error = response_json.get("error", "Unknown error")
             raise PushEntryFailed(error)
 
         if selected_role:
             self.update_latest_role_for_alias(entry.alias, selected_role.id)
 
-        additional_info = "individual action" if not selected_role else "as {}".format(selected_role.full_name)
+        additional_info = (
+            "individual action"
+            if not selected_role
+            else "as {}".format(selected_role.full_name)
+        )
         messages = format_response_messages(response_json)
 
         return ". ".join([additional_info] + messages)
 
     @needs_authentication
     def get_projects(self):
-        projects_url = self.get_api_url('/projects/')
+        projects_url = self.get_api_url("/projects/")
 
         try:
-            response = self.zebra_request('get', projects_url)
+            response = self.zebra_request("get", projects_url)
             projects = response.json()
         except ValueError:
             raise TaxiException(
@@ -190,29 +207,33 @@ class ZebraBackend(BaseBackend):
                 "credentials" % response.content
             )
         projects_list = []
-        date_attrs = ('start_date', 'end_date')
+        date_attrs = ("start_date", "end_date")
 
-        for project in projects['data']['list'].values():
-            team = str(project['circle_id']) if project['circle_id'] else None
-            p = Project(project['id'], project['name'],
-                        Project.STATUS_ACTIVE, project['description'],
-                        project['budget'], team=team)
+        for project in projects["data"]["list"].values():
+            team = str(project["circle_id"]) if project["circle_id"] else None
+            p = Project(
+                project["id"],
+                project["name"],
+                Project.STATUS_ACTIVE,
+                project["description"],
+                project["budget"],
+                team=team,
+            )
 
             for date_attr in date_attrs:
                 try:
-                    date = datetime.strptime(project[date_attr],
-                                             '%Y-%m-%d').date()
+                    date = datetime.strptime(project[date_attr], "%Y-%m-%d").date()
                 except (ValueError, TypeError):
                     date = None
 
                 setattr(p, date_attr, date)
 
-            for activity in project['activities']:
-                a = Activity(activity['id'], activity['name'], activity['is_active'])
+            for activity in project["activities"]:
+                a = Activity(activity["id"], activity["name"], activity["is_active"])
                 p.add_activity(a)
 
-                if activity['alias']:
-                    p.aliases[activity['alias']] = activity['id']
+                if activity["alias"]:
+                    p.aliases[activity["alias"]] = activity["id"]
 
             projects_list.append(p)
 
@@ -220,9 +241,9 @@ class ZebraBackend(BaseBackend):
 
     @needs_authentication
     def get_user_info(self):
-        if getattr(self, '_user_info', None) is None:
-            user_info_url = self.get_api_url('/users/me')
-            data = self.zebra_request('get', user_info_url).json()['data']
+        if getattr(self, "_user_info", None) is None:
+            user_info_url = self.get_api_url("/users/me")
+            data = self.zebra_request("get", user_info_url).json()["data"]
 
             self._user_info = data
 
@@ -233,8 +254,8 @@ class ZebraBackend(BaseBackend):
             if isinstance(role, dict):
                 return Role(
                     id=str(id_),
-                    parent_id=str(role['parent_id']) if role['parent_id'] else None,
-                    full_name=role['full_name']
+                    parent_id=str(role["parent_id"]) if role["parent_id"] else None,
+                    full_name=role["full_name"],
                 )
             else:
                 return Role(id=str(id_), parent_id=None, full_name=role)
@@ -242,7 +263,7 @@ class ZebraBackend(BaseBackend):
         user_info = self.get_user_info()
         roles = {
             str(id_): zebra_role_to_role(id_, role)
-            for id_, role in user_info.get('roles', {}).items()
+            for id_, role in user_info.get("roles", {}).items()
         }
 
         return roles
@@ -252,13 +273,15 @@ class ZebraBackend(BaseBackend):
         if not end_date:
             end_date = datetime.date.today()
 
-        timesheet_url = self.get_api_url('/timesheets')
+        timesheet_url = self.get_api_url("/timesheets")
         request_params = {
-            'start_date': start_date,
-            'end_date': end_date,
+            "start_date": start_date,
+            "end_date": end_date,
         }
 
-        return self.zebra_request('get', timesheet_url, params=request_params).json()['data']['list']
+        return self.zebra_request("get", timesheet_url, params=request_params).json()[
+            "data"
+        ]["list"]
 
     def get_latest_role_for_alias(self, alias):
         try:
@@ -269,24 +292,30 @@ class ZebraBackend(BaseBackend):
         return self.get_activities_roles().get(alias_id)
 
     def get_activities_roles(self):
-        if getattr(self, '_activities_roles', None) is not None:
+        if getattr(self, "_activities_roles", None) is not None:
             return self._activities_roles
 
-        response = self.zebra_request('get', self.get_api_url('/latestActivityRoles'))
+        response = self.zebra_request("get", self.get_api_url("/latestActivityRoles"))
         if not response:
-            logger.warning("Could not fetch latest activity roles, got response %s", response)
+            logger.warning(
+                "Could not fetch latest activity roles, got response %s", response
+            )
             return {}
 
         try:
-            activities_roles = response.json()['data']
+            activities_roles = response.json()["data"]
         except json.JsonDecodeError as e:
-            logger.warning("Could not decode latestActivityRoles JSON response, got %s", e)
+            logger.warning(
+                "Could not decode latestActivityRoles JSON response, got %s", e
+            )
             return {}
         except KeyError:
             logger.warning("No 'data' in latestActivityRole endpoint response")
             return {}
 
-        self._activities_roles = {str(key): str(value) for key, value in activities_roles.items()}
+        self._activities_roles = {
+            str(key): str(value) for key, value in activities_roles.items()
+        }
 
         return self._activities_roles
 
@@ -296,7 +325,7 @@ class ZebraBackend(BaseBackend):
         except KeyError:
             return
 
-        if not hasattr(self, '_activities_roles'):
+        if not hasattr(self, "_activities_roles"):
             self._activities_roles = {}
 
         self._activities_roles[str(alias_id)] = str(role_id)

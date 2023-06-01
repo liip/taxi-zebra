@@ -22,7 +22,7 @@ urls = {
         "login": "/login/user/{}.json".format(username),
         "user_info": "/api/v2/users/me",
         "timesheets": "/api/v2/timesheets/",
-        "latestActivityRoles": "/api/v2/latestActivityRoles"
+        "latestActivityRoles": "/api/v2/latestActivityRoles",
     }.items()
 }
 
@@ -50,8 +50,13 @@ def mocked_responses():
 def backend(aliases_database, tmp_path):
     projects_db_path = str(tmp_path / "projects.json")
     yield ZebraBackend(
-        username=username, password="foobar", hostname=hostname, port=443,
-        path="", options={}, context={"view": TtyUi(), "projects_db": ProjectsDb(projects_db_path)}
+        username=username,
+        password="foobar",
+        hostname=hostname,
+        port=443,
+        path="",
+        options={},
+        context={"view": TtyUi(), "projects_db": ProjectsDb(projects_db_path)},
     )
 
 
@@ -64,27 +69,38 @@ def authenticated_responses(mocked_responses):
                 2: {"id": 2, "parent_id": 1, "full_name": "Role"},
                 3: {"id": 3, "parent_id": 1, "full_name": "Role 2"},
             }
-        }
+        },
     }
-    latest_activity_roles = {
-        "success": True,
-        "data": {
-            "1": 2
-        }
-    }
+    latest_activity_roles = {"success": True, "data": {"1": 2}}
 
-    mocked_responses.add(responses.POST,
-                         urls["login"],
-                         body="{}", status=200, content_type="application/json")
-    mocked_responses.add(responses.GET,
-                         urls["user_info"], body=json.dumps(user_info),
-                         status=200, content_type="application/json")
-    mocked_responses.add(responses.GET,
-                         urls["latestActivityRoles"], body=json.dumps(latest_activity_roles),
-                         status=200, content_type="application/json")
-    mocked_responses.add(responses.POST,
-                         urls["timesheets"], body=json.dumps({"success": True}),
-                         status=200, content_type="application/json")
+    mocked_responses.add(
+        responses.POST,
+        urls["login"],
+        body="{}",
+        status=200,
+        content_type="application/json",
+    )
+    mocked_responses.add(
+        responses.GET,
+        urls["user_info"],
+        body=json.dumps(user_info),
+        status=200,
+        content_type="application/json",
+    )
+    mocked_responses.add(
+        responses.GET,
+        urls["latestActivityRoles"],
+        body=json.dumps(latest_activity_roles),
+        status=200,
+        content_type="application/json",
+    )
+    mocked_responses.add(
+        responses.POST,
+        urls["timesheets"],
+        body=json.dumps({"success": True}),
+        status=200,
+        content_type="application/json",
+    )
 
     yield mocked_responses
 
@@ -92,12 +108,18 @@ def authenticated_responses(mocked_responses):
 def require_role(authenticated_responses):
     authenticated_responses.remove(responses.POST, urls["timesheets"])
     authenticated_responses.add(
-        responses.POST, urls["timesheets"], body=json.dumps({"errorCode": "role_needed"}),
-        status=400, content_type="application/json"
+        responses.POST,
+        urls["timesheets"],
+        body=json.dumps({"errorCode": "role_needed"}),
+        status=400,
+        content_type="application/json",
     )
     authenticated_responses.add(
-        responses.POST, urls["timesheets"], body=json.dumps({"success": True}),
-        status=200, content_type="application/json"
+        responses.POST,
+        urls["timesheets"],
+        body=json.dumps({"success": True}),
+        status=200,
+        content_type="application/json",
     )
 
     return authenticated_responses
@@ -116,8 +138,11 @@ def test_role_is_prompted_when_needed(authenticated_responses, backend):
         prompt_role.assert_called_once_with(
             entry,
             [role, Role(id="3", parent_id="1", full_name="Role 2")],
-            {"view": backend.context["view"], "projects_db": backend.context["projects_db"]},
-            default_role=Role(id="2", parent_id="1", full_name="Role")
+            {
+                "view": backend.context["view"],
+                "projects_db": backend.context["projects_db"],
+            },
+            default_role=Role(id="2", parent_id="1", full_name="Role"),
         )
 
     push_call = authenticated_responses.calls[-1]
@@ -133,8 +158,9 @@ def test_role_is_not_prompted_when_not_needed(authenticated_responses, backend):
         prompt_role.assert_not_called()
 
 
-def test_role_is_not_prompted_when_alias_has_role(authenticated_responses,
-                                                  backend, aliases_database):
+def test_role_is_not_prompted_when_alias_has_role(
+    authenticated_responses, backend, aliases_database
+):
     entry = Entry(alias="alias2", duration=1, description="")
     aliases_database["alias2"] = Mapping(mapping=("1", "1", "2"), backend="local")
 
@@ -147,12 +173,17 @@ def test_role_is_not_prompted_when_alias_has_role(authenticated_responses,
 
 
 def test_push_returns_backend_messages(authenticated_responses, backend):
-    success_response = {"success": True, "messages": [{"text": "Hello world",
-                                                       "type": "warning"}]}
+    success_response = {
+        "success": True,
+        "messages": [{"text": "Hello world", "type": "warning"}],
+    }
 
     authenticated_responses.replace(
-        responses.POST, urls["timesheets"], body=json.dumps(success_response),
-        status=200, content_type="application/json"
+        responses.POST,
+        urls["timesheets"],
+        body=json.dumps(success_response),
+        status=200,
+        content_type="application/json",
     )
     entry = Entry(alias="alias1", duration=1, description="")
     additional_info = backend.push_entry(datetime.date.today(), entry)
@@ -195,12 +226,17 @@ def test_latest_role_is_selected(authenticated_responses, backend):
     assert "role_id=2" in push_call.request.body
 
 
-def test_latest_role_is_not_proposed_when_not_available(authenticated_responses, backend, capsys):
+def test_latest_role_is_not_proposed_when_not_available(
+    authenticated_responses, backend, capsys
+):
     require_role(authenticated_responses)
-    authenticated_responses.replace(responses.GET,
-                                    urls["latestActivityRoles"],
-                                    body=json.dumps({"success": True, "data": {1: "999"}}),
-                                    status=200, content_type="application/json")
+    authenticated_responses.replace(
+        responses.GET,
+        urls["latestActivityRoles"],
+        body=json.dumps({"success": True, "data": {1: "999"}}),
+        status=200,
+        content_type="application/json",
+    )
     entry = Entry(alias="alias1", duration=1, description="")
 
     with patch("click.termui.visible_prompt_func") as patched_input:
@@ -211,12 +247,17 @@ def test_latest_role_is_not_proposed_when_not_available(authenticated_responses,
     assert "Select a role:" in capsys.readouterr().out
 
 
-def test_no_default_role_proposed_when_alias_never_used(authenticated_responses, backend, capsys):
+def test_no_default_role_proposed_when_alias_never_used(
+    authenticated_responses, backend, capsys
+):
     require_role(authenticated_responses)
-    authenticated_responses.replace(responses.GET,
-                                    urls["latestActivityRoles"],
-                                    body=json.dumps({"success": True, "data": {}}),
-                                    status=200, content_type="application/json")
+    authenticated_responses.replace(
+        responses.GET,
+        urls["latestActivityRoles"],
+        body=json.dumps({"success": True, "data": {}}),
+        status=200,
+        content_type="application/json",
+    )
     entry = Entry(alias="alias1", duration=1, description="")
 
     with patch("click.termui.visible_prompt_func") as patched_input:
@@ -230,7 +271,7 @@ def test_no_default_role_proposed_when_alias_never_used(authenticated_responses,
 def test_default_role_updates_between_entries(authenticated_responses, backend, capsys):
     entries = [
         Entry(alias="alias1", duration=1, description="foo"),
-        Entry(alias="alias1", duration=1, description="bar")
+        Entry(alias="alias1", duration=1, description="bar"),
     ]
 
     with patch("click.termui.visible_prompt_func") as patched_input:
