@@ -41,6 +41,11 @@ class ZebraBackend(BaseBackend):
     def __init__(self, *args, **kwargs):
         super(ZebraBackend, self).__init__(*args, **kwargs)
 
+        if self.password:
+            raise TaxiException(
+                "Password was passed to ZebraBackend, only token is supported."
+            )
+
         self.port = self.port if self.port else 443
 
         if not self.path.startswith("/"):
@@ -57,8 +62,7 @@ class ZebraBackend(BaseBackend):
     def get_api_url(self, url):
         absolute_url = self.get_full_url("/api/v2{url}".format(url=url))
 
-        if not self.password:
-            absolute_url = self.append_token(absolute_url)
+        absolute_url = self.append_token(absolute_url)
 
         return absolute_url
 
