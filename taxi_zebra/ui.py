@@ -38,15 +38,11 @@ def prompt_options(message, options, default=None):
         return option.key if option.key is not None else pos
 
     enumerated_options = list(enumerate(options))
-    options_by_key = [
-        (get_option_key(i, option), option) for i, option in enumerated_options
-    ]
+    options_by_key = [(get_option_key(i, option), option) for i, option in enumerated_options]
     options_by_key_dict = dict(options_by_key)
     try:
         default_option_id = (
-            next(key for key, option in options_by_key if option.value == default.value)
-            if default
-            else None
+            next(key for key, option in options_by_key if option.value == default.value) if default else None
         )
     except StopIteration:
         default_option_id = None
@@ -64,20 +60,14 @@ def prompt_options(message, options, default=None):
             click.echo(option.label)
 
     click.echo()
-    prompt_message_default = (
-        " (leave empty for {})".format(click.style(default.label, bold=True))
-        if default
-        else ""
-    )
+    prompt_message_default = " (leave empty for {})".format(click.style(default.label, bold=True)) if default else ""
     prompt_message = "Select a role{}".format(prompt_message_default)
 
     while True:
         option_id = (
             click.prompt(
                 prompt_message,
-                default=str(default_option_id)
-                if default_option_id is not None
-                else None,
+                default=str(default_option_id) if default_option_id is not None else None,
                 show_default=False,
             )
             .lstrip("[")
@@ -109,9 +99,7 @@ def input_role(roles, project_team, default_role=None):
     def role_to_option(role):
         highlight = role.parent_id and role.parent_id == project_team
 
-        return Option(
-            value=role, label=role.full_name, style={"bold": True} if highlight else {}
-        )
+        return Option(value=role, label=role.full_name, style={"bold": True} if highlight else {})
 
     individual_action = "i"
     cancel = "c"
@@ -119,9 +107,7 @@ def input_role(roles, project_team, default_role=None):
 
     options = [role_to_option(role) for role in sorted_roles] + [
         Option(value=None, label="-----"),
-        Option(
-            value=individual_action, label="Individual action", key=individual_action
-        ),
+        Option(value=individual_action, label="Individual action", key=individual_action),
         Option(value=cancel, label="Cancel, skip this entry for now", key=cancel),
     ]
 
@@ -161,11 +147,7 @@ def prompt_role(entry, roles, context, default_role=None):
 
     # Do not ask to save role association if user has requested to never be asked for it
     if role and get_role_id_from_alias(entry.alias) != NEVER_SAVE_ROLE_ID:
-        click.echo(
-            "You have selected the role {}".format(
-                click.style(role.full_name, fg="yellow")
-            )
-        )
+        click.echo("You have selected the role {}".format(click.style(role.full_name, fg="yellow")))
         prompt_kwargs = {
             "prompt_suffix": " ",
             "type": click.Choice(["y", "n", "N"]),
@@ -182,7 +164,7 @@ def prompt_role(entry, roles, context, default_role=None):
                 "Make the {} alias always use this role? ([y]es, [n]o, [N]ever)".format(
                     click.style(entry.alias, fg="yellow")
                 ),
-                **prompt_kwargs
+                **prompt_kwargs,
             )
         except click.exceptions.Abort:
             click.echo()
@@ -196,9 +178,7 @@ def prompt_role(entry, roles, context, default_role=None):
             )
 
             click.secho(
-                "Alias {} now points to the role {}".format(
-                    entry.alias, role.full_name
-                ),
+                "Alias {} now points to the role {}".format(entry.alias, role.full_name),
                 fg="green",
             )
         elif create_alias == "N":

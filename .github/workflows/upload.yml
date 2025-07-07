@@ -17,8 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements_test.txt
-          python -m pip install taxi twine .
+          python -m pip install taxi twine .[testing]
       - name: Test with pytest
         run: |
           pytest

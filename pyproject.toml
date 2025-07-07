@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taxi_zebra"
+version = "5.0.0"
+description = "Zebra backend for Taxi"
+readme = "README.rst"
+license = "WTFPL"
+authors = [{ name = "Zebra squad", email = "zebra-squad@liip.ch" }]
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.3.0",
+  "taxi~=6.2",
+  "click>=7.0"
+]
+urls = { Homepage = "https://github.com/liip/taxi-zebra" }
+
+[project.optional-dependencies]
+testing = [
+  "pytest>=7.0",
+  "responses",
+  "ruff"
+]
+
+[project.entry-points."taxi.backends"]
+zebra = "taxi_zebra.backend:ZebraBackend"
+
+[project.entry-points."taxi.commands"]
+zebra = "taxi_zebra.commands"
+
+[tool.setuptools]
+packages = ["taxi_zebra"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["taxi", "taxi_zebra"]
