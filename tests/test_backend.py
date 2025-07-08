@@ -30,12 +30,8 @@ urls = {
 @pytest.fixture
 def aliases_database():
     taxi.aliases.aliases_database.reset()
-    taxi.aliases.aliases_database["alias1"] = Mapping(
-        mapping=("1", "1"), backend="local"
-    )
-    taxi.aliases.aliases_database["alias_do_not_ask_for_role"] = Mapping(
-        mapping=("1", "1", "0"), backend="local"
-    )
+    taxi.aliases.aliases_database["alias1"] = Mapping(mapping=("1", "1"), backend="local")
+    taxi.aliases.aliases_database["alias_do_not_ask_for_role"] = Mapping(mapping=("1", "1", "0"), backend="local")
 
     yield taxi.aliases.aliases_database
 
@@ -151,9 +147,7 @@ def test_role_is_not_prompted_when_not_needed(authenticated_responses, backend):
         prompt_role.assert_not_called()
 
 
-def test_role_is_not_prompted_when_alias_has_role(
-    authenticated_responses, backend, aliases_database
-):
+def test_role_is_not_prompted_when_alias_has_role(authenticated_responses, backend, aliases_database):
     entry = Entry(alias="alias2", duration=1, description="")
     aliases_database["alias2"] = Mapping(mapping=("1", "1", "2"), backend="local")
 
@@ -219,9 +213,7 @@ def test_latest_role_is_selected(authenticated_responses, backend):
     assert "role_id=2" in push_call.request.body
 
 
-def test_latest_role_is_not_proposed_when_not_available(
-    authenticated_responses, backend, capsys
-):
+def test_latest_role_is_not_proposed_when_not_available(authenticated_responses, backend, capsys):
     require_role(authenticated_responses)
     authenticated_responses.replace(
         responses.GET,
@@ -240,9 +232,7 @@ def test_latest_role_is_not_proposed_when_not_available(
     assert "Select a role:" in capsys.readouterr().out
 
 
-def test_no_default_role_proposed_when_alias_never_used(
-    authenticated_responses, backend, capsys
-):
+def test_no_default_role_proposed_when_alias_never_used(authenticated_responses, backend, capsys):
     require_role(authenticated_responses)
     authenticated_responses.replace(
         responses.GET,

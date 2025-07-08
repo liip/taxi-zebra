@@ -35,7 +35,7 @@ install it in the virtual environment in editable mode::
 
 To run the tests::
 
-    pip install -r requirements_test.txt
+    pip install .[testing]
     pytest
 
 
