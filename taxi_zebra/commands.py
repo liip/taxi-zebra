@@ -2,6 +2,7 @@ import datetime
 
 import click
 
+from taxi.aliases import aliases_database
 from taxi.commands.base import cli, get_timesheet_collection_for_context
 from taxi.plugins import plugins_registry
 
@@ -50,6 +51,25 @@ def get_last_dow(date):
     return date + datetime.timedelta(days=(6 - date.weekday()))
 
 
+def get_registered_backend_name(backend):
+    for backend_name, registered_backend in plugins_registry._backends_registry.items():
+        if registered_backend is backend:
+            return backend_name
+
+    raise click.ClickException("Could not determine the configured name for the selected Zebra backend.")
+
+
+def get_hours_to_be_pushed(timesheet_collection, backend_name):
+    filtered_entries = timesheet_collection.entries.filter(pushed=False, ignored=False, unmapped=False)
+
+    return sum(
+        entry.hours
+        for entries in filtered_entries.values()
+        for entry in entries
+        if entry.alias in aliases_database and aliases_database[entry.alias].backend == backend_name
+    )
+
+
 @zebra.command()
 @click.pass_context
 def balance(ctx):
@@ -59,9 +79,10 @@ def balance(ctx):
     Like the hours balance, vacation left, etc.
     """
     backend = plugins_registry.get_backends_by_class(ZebraBackend)[0]
+    backend_name = get_registered_backend_name(backend)
 
     timesheet_collection = get_timesheet_collection_for_context(ctx, None)
-    hours_to_be_pushed = timesheet_collection.get_hours(pushed=False, ignored=False, unmapped=False)
+    hours_to_be_pushed = get_hours_to_be_pushed(timesheet_collection, backend_name)
 
     today = datetime.date.today()
 
