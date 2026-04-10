@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taxi_zebra"
-version = "5.0.0"
+dynamic = ["version"]
 description = "Zebra backend for Taxi"
 readme = "README.rst"
 license = "WTFPL"
@@ -32,6 +32,9 @@ zebra = "taxi_zebra.commands"
 
 [tool.setuptools]
 packages = ["taxi_zebra"]
+
+[tool.setuptools-git-versioning]
+enabled = true
 
 [tool.ruff]
 line-length = 120
